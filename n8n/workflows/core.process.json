@@ -1,0 +1,1085 @@
+{
+  "id": "core-process",
+  "name": "core.process",
+  "nodes": [
+    {
+      "id": "e1285c49-c238-5f18-85f6-813824aefe97",
+      "name": "Turn",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "conversation_id",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "feb332a9-140e-5ff4-9b1c-e639e76d0072",
+      "name": "Begin turn",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select begin_turn($1::uuid, $2) as ctx",
+        "options": {
+          "queryReplacement": "={{ [ $json.conversation_id, $execution.id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "6284516c-5d59-5505-9b10-4fd4381554d0",
+      "name": "Work?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2ad43134-3073-5433-beb8-0611e3739cc5",
+              "leftValue": "={{ !!$json.ctx }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "bc8f2a59-de02-52d0-87f5-1f1a28a2a4ff",
+      "name": "Route",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        660,
+        -20
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9c27add6-48fe-5237-bf1a-09d3caee361b",
+                    "leftValue": "={{ $json.ctx.kind === 'text' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d91cd74d-50ed-532e-926a-0353bd140277",
+                    "leftValue": "={{ $json.ctx.kind === 'action' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "action"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "69e73457-0074-5b00-98bf-56d7b63f9d83",
+                    "leftValue": "={{ $json.ctx.kind === 'urgent' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "urgent"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f02a5da9-a858-55c0-8e48-17d8d245d831",
+                    "leftValue": "={{ $json.ctx.kind === 'operator' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "operator"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "b26ee245-aadb-5d8b-8da0-bb5a2982ad57",
+                    "leftValue": "={{ $json.ctx.kind === 'give_up' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "give up"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "4186df1e-3ac3-5a6f-8769-c5818276812d",
+      "name": "Agent turn",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        900,
+        -300
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "core-turn"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ctx": "={{ $json.ctx }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ctx",
+              "displayName": "ctx",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "6e3b8f0b-d3bd-567d-85d5-ef6b5e01a280",
+      "name": "Button action",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        900,
+        -140
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "core-action"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "source": "client",
+            "ctx": "={{ $json.ctx }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "ctx",
+              "displayName": "ctx",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "4145ee8f-abc3-529f-8714-8a34029b67c0",
+      "name": "Urgent",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        900,
+        20
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cea7d473-bce0-5ae3-98af-c72ec0ad2e98",
+              "name": "reply",
+              "value": "={{ $json.ctx.templates.urgent }}",
+              "type": "string"
+            },
+            {
+              "id": "5ebbbcdc-ac85-517b-ae0b-a7ec912c3c07",
+              "name": "understood",
+              "value": "={{ true }}",
+              "type": "boolean"
+            },
+            {
+              "id": "5914f052-ba7b-564a-a888-5bc65cf6e527",
+              "name": "escalate",
+              "value": "urgent",
+              "type": "string"
+            },
+            {
+              "id": "4c905b5c-e7af-575f-aae9-611d0fbddeed",
+              "name": "trace",
+              "value": "={{ [{ type: 'decision', data: { route: 'urgent', reason: 'urgent symptoms matched before the LLM' } }] }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "ea5a9fb1-2cc1-52f9-84b1-fd82adea6208",
+      "name": "Forward to operator",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        900,
+        180
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "handoff-forward"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ctx": "={{ $json.ctx }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ctx",
+              "displayName": "ctx",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "b68d310b-d5ae-5e11-97cf-24bda9a48006",
+      "name": "Give up",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        900,
+        340
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8de4e652-0973-5271-93c5-54aa86875a5c",
+              "name": "reply",
+              "value": "={{ $json.ctx.templates.give_up }}",
+              "type": "string"
+            },
+            {
+              "id": "5edea514-54e6-5cf7-99d6-c9e2fa47e36f",
+              "name": "escalate",
+              "value": "={{ $json.ctx.state === 'operator' ? '' : 'tool_error' }}",
+              "type": "string"
+            },
+            {
+              "id": "7c358330-5e7d-548e-ad6a-e649231d3f06",
+              "name": "trace",
+              "value": "={{ [{ type: 'error', data: { stage: 'turn', error: 'gave up on the message after ' + $json.ctx.attempts + ' attempts', state: $json.ctx.state, message_ids: $json.ctx.message_ids } }] }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "4bf59bd7-a41f-55a8-a782-02ac1c671a96",
+      "name": "Turn result",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1140,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "8b1973cd-8aeb-5955-90e8-2b4ee2e48661",
+      "name": "Finish turn",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1360,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select finish_turn($1::uuid, $2, $3::bigint[], $4, $5::boolean, $6::jsonb, $7, $8::timestamptz, $9::boolean) as fin",
+        "options": {
+          "queryReplacement": "={{ [ $('Begin turn').first().json.ctx.conversation_id, $('Begin turn').first().json.ctx.owner, $('Begin turn').first().json.ctx.message_ids, $json.reply ?? null, $json.understood ?? null, JSON.stringify($json.trace ?? []), $json.execution_id ?? $execution.id, $('Begin turn').first().json.ctx.turn_started_at, $('Begin turn').first().json.ctx.kind === 'give_up' && $('Begin turn').first().json.ctx.state === 'operator' ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "1f9c9f38-d87f-5db8-b91b-3853bf800e9e",
+      "name": "Reply queued?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1580,
+        -160
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "04ca949a-50fb-5c7f-93c1-37762fccc921",
+              "leftValue": "={{ !!$json.fin.out_message_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "3a8673a3-58f7-5dc7-95d4-f6086e646d3a",
+      "name": "Send reply",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1800,
+        -180
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "out-send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_id": "={{ $json.fin.out_message_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "1a27bae8-2355-54ff-9f9d-64dc8d809162",
+      "name": "Escalate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1580,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f2bc3df2-e58e-5fcb-a764-a7b6e9294519",
+              "leftValue": "={{ !$json.fin.stale && (!!$('Turn result').first().json.escalate || $json.fin.streak >= 2) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "d1d0b638-06a5-5207-b9c6-be5603ca184c",
+      "name": "Escalate",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1800,
+        -20
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "handoff-escalate"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "conversation_id": "={{ $('Begin turn').first().json.ctx.conversation_id }}",
+            "session_id": "={{ $json.fin.session_id }}",
+            "reason": "={{ $('Turn result').first().json.escalate ?? 'not_understood' }}",
+            "notify_client": "={{ !$('Turn result').first().json.escalate }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "conversation_id",
+              "displayName": "conversation_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "reason",
+              "displayName": "reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "notify_client",
+              "displayName": "notify_client",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "boolean",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "8f581652-1c1f-5c1a-bf79-82a5e6cab1c3",
+      "name": "More?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1580,
+        160
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7440933a-61f0-5c1f-913b-5be1e3be740a",
+              "leftValue": "={{ !!$json.fin.more }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "a0bbcf8d-c084-560c-b5c6-a24b7556153b",
+      "name": "Next turn",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1800,
+        140
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "core-process"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "conversation_id": "={{ $('Begin turn').first().json.ctx.conversation_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "conversation_id",
+              "displayName": "conversation_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "2c84c2e5-16af-4a70-9e72-ff51837be1e9",
+      "name": "Gave up?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1580,
+        360
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1a05e1a0-ada8-454d-8fa7-f463a4c910b3",
+              "leftValue": "={{ !$json.fin.stale && $('Begin turn').first().json.ctx.kind === 'give_up' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "ce917a90-da09-43ee-88b2-43ae2767bc99",
+      "name": "Report give up",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1800,
+        360
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "ops-error"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "workflow": "={{ $workflow.name }}",
+            "node": "={{ 'Give up' }}",
+            "execution_id": "={{ $execution.id }}",
+            "error": "={{ 'Gave up on client messages after ' + $('Begin turn').first().json.ctx.attempts + ' failed turns (tenant ' + $('Begin turn').first().json.ctx.tenant_slug + ', conversation ' + $('Begin turn').first().json.ctx.conversation_id + ($('Begin turn').first().json.ctx.state === 'operator' ? ', operator mode: the client was sent to the clinic phone and the bot took over' : '') + ')' }}",
+            "ref": "={{ null }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "workflow",
+              "displayName": "workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "node",
+              "displayName": "node",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "ref",
+              "displayName": "ref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Turn": {
+      "main": [
+        [
+          {
+            "node": "Begin turn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Begin turn": {
+      "main": [
+        [
+          {
+            "node": "Work?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Work?": {
+      "main": [
+        [
+          {
+            "node": "Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route": {
+      "main": [
+        [
+          {
+            "node": "Agent turn",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Button action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Urgent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Forward to operator",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Give up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent turn": {
+      "main": [
+        [
+          {
+            "node": "Turn result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Button action": {
+      "main": [
+        [
+          {
+            "node": "Turn result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Urgent": {
+      "main": [
+        [
+          {
+            "node": "Turn result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forward to operator": {
+      "main": [
+        [
+          {
+            "node": "Turn result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Give up": {
+      "main": [
+        [
+          {
+            "node": "Turn result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Turn result": {
+      "main": [
+        [
+          {
+            "node": "Finish turn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finish turn": {
+      "main": [
+        [
+          {
+            "node": "Reply queued?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Escalate?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "More?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Gave up?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply queued?": {
+      "main": [
+        [
+          {
+            "node": "Send reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalate?": {
+      "main": [
+        [
+          {
+            "node": "Escalate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "More?": {
+      "main": [
+        [
+          {
+            "node": "Next turn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gave up?": {
+      "main": [
+        [
+          {
+            "node": "Report give up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true,
+    "executionTimeout": 110,
+    "saveDataSuccessExecution": "none"
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "One turn of one conversation under a lease: context in one SQL call, route (agent / button / urgent / operator / give up), finish in one SQL call, send, escalate, loop while new messages wait."
+}

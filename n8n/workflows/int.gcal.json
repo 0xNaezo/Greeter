@@ -1,0 +1,873 @@
+{
+  "id": "int-gcal",
+  "name": "int.gcal",
+  "nodes": [
+    {
+      "id": "d7716301-6cde-5775-9213-1b7bf59c2cc1",
+      "name": "Appointments",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "appointment_id",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a18667ba-ec33-5522-a57e-32b13e997cc4",
+      "name": "Job",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select gcal_job($1::uuid) as job",
+        "options": {
+          "queryReplacement": "={{ [ $json.appointment_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "1ea81065-b943-566d-a1b5-c83efb4f0f46",
+      "name": "Calendar configured?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "72736d31-f1b7-5bb5-a227-21c5564f6de9",
+              "leftValue": "={{ !!$json.job?.calendar_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "691a52cf-2b48-5c16-9d03-1eac85898c05",
+      "name": "Nothing to mirror",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        660,
+        200
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select mark_gcal_synced($1::uuid, $2::timestamptz, null) as ok",
+        "options": {
+          "queryReplacement": "={{ [ $json.job.appointment_id, $json.job.version ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "c03a61ac-7a39-5b63-b239-b227836af392",
+      "name": "Sign assertion",
+      "type": "n8n-nodes-base.jwt",
+      "typeVersion": 1,
+      "position": [
+        660,
+        -40
+      ],
+      "parameters": {
+        "operation": "sign",
+        "useJson": true,
+        "claimsJson": "={{ JSON.stringify({ iss: $env.GOOGLE_SA_EMAIL || 'stub@greeter.local', scope: 'https://www.googleapis.com/auth/calendar.events', aud: $('Job').item.json.job.token_uri, exp: Math.floor(Date.now() / 1000) + 3600 }) }}",
+        "options": {
+          "algorithm": "RS256"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "cred-google-sa",
+          "name": "Google service account key"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "23a630d6-6b9c-5d2e-88aa-8bbd56e4d50e",
+      "name": "Access token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        -40
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Job').item.json.job.token_uri }}",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "urn:ietf:params:oauth:grant-type:jwt-bearer"
+            },
+            {
+              "name": "assertion",
+              "value": "={{ $json.token }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "4e8c7b92-2654-5ffd-a3ef-16d67bda6ace",
+      "name": "Operation",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1100,
+        -40
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "07d4c5ce-d589-5cc3-9c65-00e99c873781",
+                    "leftValue": "={{ $('Job').item.json.job.status === 'booked' && !!$('Job').item.json.job.old_calendar_id && $('Job').item.json.job.old_calendar_id !== $('Job').item.json.job.calendar_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "moved calendar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7f4935fa-dd95-5d45-8971-fe68631dcc83",
+                    "leftValue": "={{ $('Job').item.json.job.status === 'booked' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "upsert"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1b55a520-3145-5f51-a7c3-460a4e211300",
+                    "leftValue": "={{ ['cancelled', 'no_show'].includes($('Job').item.json.job.status) && !!$('Job').item.json.job.old_calendar_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "delete"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "keep"
+        }
+      }
+    },
+    {
+      "id": "8ec918e6-9d61-5d05-8c78-2955573e28e5",
+      "name": "Delete from old calendar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        -260
+      ],
+      "parameters": {
+        "method": "DELETE",
+        "url": "={{ $('Job').item.json.job.api_base }}/calendars/{{ encodeURIComponent($('Job').item.json.job.old_calendar_id) }}/events/{{ $('Job').item.json.job.event_id }}",
+        "options": {
+          "timeout": 10000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Access token').item.json.access_token }}"
+            }
+          ]
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "fed6e464-0166-5162-a38f-af8aeb3b7812",
+      "name": "Upsert event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1560,
+        -140
+      ],
+      "parameters": {
+        "method": "={{ $('Job').item.json.job.old_calendar_id === $('Job').item.json.job.calendar_id ? 'PUT' : 'POST' }}",
+        "url": "={{ $('Job').item.json.job.api_base }}/calendars/{{ encodeURIComponent($('Job').item.json.job.calendar_id) }}/events{{ $('Job').item.json.job.old_calendar_id === $('Job').item.json.job.calendar_id ? '/' + $('Job').item.json.job.event_id : '' }}",
+        "options": {
+          "timeout": 10000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Access token').item.json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Job').item.json.job.old_calendar_id === $('Job').item.json.job.calendar_id ? Object.assign({ status: 'confirmed' }, $('Job').item.json.job.event) : Object.assign({ id: $('Job').item.json.job.event_id }, $('Job').item.json.job.event)) }}"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "bfb6bbd4-d3a6-5791-a1e0-5e9b9dfaeac4",
+      "name": "Drifted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1780,
+        -40
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fa47761b-b06d-5f7e-ac17-cb820d9f8906",
+              "leftValue": "={{ /\\b(404|409|410)\\b|already exists|not found/i.test(JSON.stringify($json.error ?? '')) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "d56522df-2667-5fbe-a8ba-dfdd474ee5a5",
+      "name": "Repair event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        -120
+      ],
+      "parameters": {
+        "method": "={{ /\\b409\\b|already exists/i.test(JSON.stringify($('Drifted?').item.json.error ?? '')) ? 'PUT' : 'POST' }}",
+        "url": "={{ $('Job').item.json.job.api_base }}/calendars/{{ encodeURIComponent($('Job').item.json.job.calendar_id) }}/events{{ /\\b409\\b|already exists/i.test(JSON.stringify($('Drifted?').item.json.error ?? '')) ? '/' + $('Job').item.json.job.event_id : '' }}",
+        "options": {
+          "timeout": 10000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Access token').item.json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify(/\\b409\\b|already exists/i.test(JSON.stringify($('Drifted?').item.json.error ?? '')) ? Object.assign({ status: 'confirmed' }, $('Job').item.json.job.event) : Object.assign({ id: $('Job').item.json.job.event_id }, $('Job').item.json.job.event)) }}"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "fa327ffe-e2d5-5652-be0a-46c2e9bfdf9b",
+      "name": "Delete event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        100
+      ],
+      "parameters": {
+        "method": "DELETE",
+        "url": "={{ $('Job').item.json.job.api_base }}/calendars/{{ encodeURIComponent($('Job').item.json.job.old_calendar_id) }}/events/{{ $('Job').item.json.job.event_id }}",
+        "options": {
+          "timeout": 10000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Access token').item.json.access_token }}"
+            }
+          ]
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "658d17c3-8d46-5a7d-b4e4-76c034c7b23e",
+      "name": "Gone already?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1560,
+        180
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "79eac36e-53b9-5a3a-8bf8-24b68e4a1126",
+              "leftValue": "={{ /\\b(404|410)\\b|not found|deleted/i.test(JSON.stringify($json.error ?? '')) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "e46292df-f3df-54e9-b8b6-a0111030394c",
+      "name": "Mark synced",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2240,
+        -20
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select mark_gcal_synced($1::uuid, $2::timestamptz, $3) as ok",
+        "options": {
+          "queryReplacement": "={{ [ $('Job').item.json.job.appointment_id, $('Job').item.json.job.version, $('Job').item.json.job.status === 'booked' ? $('Job').item.json.job.calendar_id : null ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "5d28f6e7-832f-4494-9247-5ee8f7d0ea65",
+      "name": "Sync failed",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2240,
+        240
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select mark_gcal_failed($1::uuid, $2::timestamptz, $3) as r",
+        "options": {
+          "queryReplacement": "={{ [ $('Job').item.json.job.appointment_id, $('Job').item.json.job.version, String($json.error?.message ?? JSON.stringify($json.error ?? $json)).slice(0, 300) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "ed20db93-592f-464a-a418-580a818f607d",
+      "name": "Report?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2460,
+        240
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "34bd693d-a7bc-47d3-9ce2-850fea06eabb",
+              "leftValue": "={{ $json.r?.report }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "635b14d6-3263-4311-ab9d-2585e2b2ddc7",
+      "name": "Report sync failure",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2680,
+        240
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "ops-error"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "workflow": "={{ $workflow.name }}",
+            "node": "={{ 'Sync failed' }}",
+            "execution_id": "={{ $execution.id }}",
+            "error": "={{ $json.r.error }}",
+            "ref": "={{ $json.r.ref }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "workflow",
+              "displayName": "workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "node",
+              "displayName": "node",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "ref",
+              "displayName": "ref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Appointments": {
+      "main": [
+        [
+          {
+            "node": "Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Job": {
+      "main": [
+        [
+          {
+            "node": "Calendar configured?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar configured?": {
+      "main": [
+        [
+          {
+            "node": "Sign assertion",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Nothing to mirror",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign assertion": {
+      "main": [
+        [
+          {
+            "node": "Access token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sync failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Access token": {
+      "main": [
+        [
+          {
+            "node": "Operation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sync failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Operation": {
+      "main": [
+        [
+          {
+            "node": "Delete from old calendar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Upsert event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Delete event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark synced",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete from old calendar": {
+      "main": [
+        [
+          {
+            "node": "Upsert event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert event": {
+      "main": [
+        [
+          {
+            "node": "Mark synced",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Drifted?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drifted?": {
+      "main": [
+        [
+          {
+            "node": "Repair event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sync failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Repair event": {
+      "main": [
+        [
+          {
+            "node": "Mark synced",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sync failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete event": {
+      "main": [
+        [
+          {
+            "node": "Mark synced",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gone already?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gone already?": {
+      "main": [
+        [
+          {
+            "node": "Mark synced",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sync failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sync failed": {
+      "main": [
+        [
+          {
+            "node": "Report?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report?": {
+      "main": [
+        [
+          {
+            "node": "Report sync failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "Mirror appointments to Google Calendar (doctor calendar, else branch calendar) with a service account: event id = appointment uuid without dashes, so a repeated create is idempotent. Marks gcal_synced_at only if the appointment did not change meanwhile. A failed sync is data, not an execution error: the appointment is retried with backoff (gcal_next_at) and the third failure in a row raises one incident, closed by the next successful sync."
+}

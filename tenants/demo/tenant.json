@@ -1,0 +1,124 @@
+{
+  "slug": "demo",
+  "name": "Lumina Dental",
+  "timezone": "Europe/Kyiv",
+  "llm_profile": "openrouter",
+  "config": {
+    "about": "Lumina Dental is a network of two dental clinics in Kyiv: general dentistry, hygiene, whitening, orthodontics, surgery and implants, children's dentistry. Payment by card or cash; no insurance direct billing.",
+    "tone": "Warm, concise and professional. Short messages, no medical jargon, at most one emoji.",
+    "languages": ["en", "uk", "ru"],
+    "default_lang": "en",
+    "emergency_phone": "+380 44 000 11 22",
+    "operator": { "sla_min": 10 },
+    "booking": { "slot_step_min": 30, "lead_min": 60, "horizon_days": 28 },
+    "followups": {
+      "review": true,
+      "no_show": true,
+      "reactivation": { "enabled": true, "after_months": 6, "daily_limit": 20 }
+    },
+    "models": { "openrouter": "openai/gpt-4.1-mini", "groq": "llama-3.3-70b-versatile" }
+  },
+  "env": {
+    "telegram_token": "DEMO_TG_BOT_TOKEN",
+    "operator_chat_id": "DEMO_TG_OPERATOR_CHAT_ID",
+    "whatsapp_phone_number_id": "DEMO_WA_PHONE_NUMBER_ID",
+    "whatsapp_token": "DEMO_WA_TOKEN",
+    "calendars": { "center": "DEMO_GCAL_CENTER", "podil": "DEMO_GCAL_PODIL" }
+  },
+  "branches": [
+    {
+      "slug": "center",
+      "name": "Lumina Center",
+      "address": "14 Volodymyrska St, Kyiv",
+      "phone": "+380 44 000 11 00",
+      "hours": { "mon": "09:00-20:00", "tue": "09:00-20:00", "wed": "09:00-20:00", "thu": "09:00-20:00", "fri": "09:00-20:00", "sat": "10:00-16:00", "sun": null }
+    },
+    {
+      "slug": "podil",
+      "name": "Lumina Podil",
+      "address": "7 Kostiantynivska St, Kyiv",
+      "phone": "+380 44 000 11 33",
+      "hours": { "mon": "08:00-19:00", "tue": "08:00-19:00", "wed": "08:00-19:00", "thu": "08:00-19:00", "fri": "08:00-19:00", "sat": null, "sun": null }
+    }
+  ],
+  "services": [
+    { "slug": "consultation", "name": "Consultation and exam", "price": 500, "duration_min": 30, "description": "Exam, treatment plan and cost estimate." },
+    { "slug": "hygiene", "name": "Professional cleaning", "price": 1800, "duration_min": 60, "description": "Ultrasonic scaling, Air Flow, polishing." },
+    { "slug": "whitening", "name": "In-office whitening", "price": 6500, "duration_min": 90, "description": "One visit, up to 8 shades lighter; cleaning beforehand is required." },
+    { "slug": "filling", "name": "Composite filling", "price": 1600, "price_note": "from", "duration_min": 60, "description": "Light-cured composite, price depends on size." },
+    { "slug": "root-canal", "name": "Root canal treatment", "price": 3500, "price_note": "from", "duration_min": 90, "description": "Per canal, under microscope; usually 2 visits." },
+    { "slug": "extraction", "name": "Tooth extraction", "price": 1500, "duration_min": 45, "description": "Simple extraction under local anaesthesia." },
+    { "slug": "wisdom-extraction", "name": "Wisdom tooth extraction", "price": 3500, "price_note": "from", "duration_min": 60 },
+    { "slug": "xray", "name": "Panoramic X-ray", "price": 450, "duration_min": 15 },
+    { "slug": "implant-consult", "name": "Implant consultation with CT plan", "price": 900, "duration_min": 45 },
+    { "slug": "implant", "name": "Dental implant (without crown)", "price": 22000, "price_note": "from", "duration_min": 90, "description": "Straumann or Osstem implant, crown priced separately." },
+    { "slug": "crown", "name": "Ceramic crown", "price": 9000, "price_note": "from", "duration_min": 60 },
+    { "slug": "ortho-consult", "name": "Orthodontic consultation", "price": 700, "duration_min": 45, "description": "Bite assessment, braces or aligners options." },
+    { "slug": "aligners-plan", "name": "Clear aligners planning", "price": 1500, "duration_min": 60, "description": "3D scan and treatment simulation; deducted from the aligners price." },
+    { "slug": "kids-checkup", "name": "Children's check-up", "price": 450, "duration_min": 30, "description": "For ages 3-14, playful first visit." },
+    { "slug": "kids-filling", "name": "Children's filling", "price": 1100, "price_note": "from", "duration_min": 45 },
+    { "slug": "fluoride", "name": "Fluoride varnish", "price": 600, "duration_min": 20, "description": "Caries prevention for children and adults." }
+  ],
+  "doctors": [
+    {
+      "slug": "kovalenko",
+      "name": "Dr. Olena Kovalenko",
+      "specialty": "General dentist",
+      "bio": "15 years of experience, fillings and root canals under microscope.",
+      "services": ["consultation", "filling", "root-canal", "xray", "fluoride"],
+      "schedule": [
+        { "branch": "center", "days": ["mon", "wed", "fri"], "from": "09:00", "to": "17:00" },
+        { "branch": "podil", "days": ["tue", "thu"], "from": "10:00", "to": "19:00" }
+      ]
+    },
+    {
+      "slug": "melnyk",
+      "name": "Dr. Andrii Melnyk",
+      "specialty": "Orthodontist",
+      "bio": "Braces and clear aligners for teens and adults.",
+      "services": ["ortho-consult", "aligners-plan", "consultation", "xray"],
+      "schedule": [
+        { "branch": "center", "days": ["tue", "thu"], "from": "12:00", "to": "20:00" },
+        { "branch": "center", "days": ["sat"], "from": "10:00", "to": "16:00" },
+        { "branch": "podil", "days": ["mon"], "from": "08:00", "to": "14:00" }
+      ]
+    },
+    {
+      "slug": "bondarenko",
+      "name": "Iryna Bondarenko",
+      "specialty": "Dental hygienist",
+      "bio": "Gentle professional cleaning and whitening.",
+      "services": ["hygiene", "whitening", "fluoride"],
+      "schedule": [
+        { "branch": "center", "days": ["mon", "tue", "wed", "thu", "fri"], "from": "12:00", "to": "20:00" },
+        { "branch": "podil", "days": ["mon", "wed", "fri"], "from": "08:00", "to": "12:00" }
+      ]
+    },
+    {
+      "slug": "shevchuk",
+      "name": "Dr. Taras Shevchuk",
+      "specialty": "Oral surgeon and implantologist",
+      "bio": "Extractions, implants and crowns; 3,000+ implants placed.",
+      "services": ["consultation", "extraction", "wisdom-extraction", "implant-consult", "implant", "crown", "xray"],
+      "schedule": [
+        { "branch": "podil", "days": ["mon", "wed", "fri"], "from": "13:00", "to": "19:00" },
+        { "branch": "center", "days": ["tue", "thu"], "from": "09:00", "to": "15:00" }
+      ]
+    },
+    {
+      "slug": "lysenko",
+      "name": "Dr. Sofia Lysenko",
+      "specialty": "Paediatric dentist",
+      "bio": "Children from 3 years, calm first visits.",
+      "services": ["kids-checkup", "kids-filling", "fluoride"],
+      "schedule": [
+        { "branch": "podil", "days": ["tue", "thu"], "from": "08:00", "to": "14:00" },
+        { "branch": "center", "days": ["wed", "fri"], "from": "14:00", "to": "20:00" },
+        { "branch": "center", "days": ["sat"], "from": "10:00", "to": "14:00" }
+      ]
+    }
+  ],
+  "channels": [
+    { "channel": "widget", "external_id": "demo-widget", "name": "Lumina website chat" }
+  ]
+}

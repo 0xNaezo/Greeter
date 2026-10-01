@@ -1,0 +1,906 @@
+{
+  "id": "agent-tools",
+  "name": "agent.tools",
+  "nodes": [
+    {
+      "id": "34951aab-8960-575c-9363-050918031ecb",
+      "name": "Tool call",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "tool",
+              "type": "string"
+            },
+            {
+              "name": "tenant_id",
+              "type": "string"
+            },
+            {
+              "name": "conversation_id",
+              "type": "string"
+            },
+            {
+              "name": "turn_started_at",
+              "type": "string"
+            },
+            {
+              "name": "args",
+              "type": "object"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "6bb8373b-ecb8-5a8c-bdfb-e5a29cca5864",
+      "name": "Which tool",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d073de90-875d-5c57-96a3-67d0d271552d",
+                    "leftValue": "={{ $json.tool === 'search_kb' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "search_kb"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e0e7a5e8-9eb0-5ccc-a360-28db0c4dca93",
+                    "leftValue": "={{ $json.tool === 'find_slots' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "find_slots"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ecd4b8bb-cd4b-5e25-aa84-7b5e81c62dd1",
+                    "leftValue": "={{ $json.tool === 'save_client_info' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "save_client_info"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "454c32ab-9125-5c9c-bb4d-c8de2934f01b",
+                    "leftValue": "={{ ['propose_booking', 'propose_reschedule', 'propose_cancel'].includes($json.tool) }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "propose"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5697ca29-2792-5108-8574-94d7315c7e51",
+                    "leftValue": "={{ $json.tool === 'confirm_action' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "confirm_action"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e4c1f206-bc9d-5642-ad31-56c26916d2d1",
+                    "leftValue": "={{ $json.tool === 'escalate' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "escalate"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "unknown"
+        }
+      }
+    },
+    {
+      "id": "42c04191-8026-5b8d-bc4a-0984b7591f43",
+      "name": "Articles found",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        -420
+      ],
+      "parameters": {
+        "jsCode": "const docs = $input.first().json.r ?? [];\nreturn [{ json: { result: docs.length\n  ? docs.map(d => `[${d.article ?? 'article'}] ${d.text}`).join('\\n\\n')\n  : 'Nothing about this in the knowledge base. Do not guess: say you do not know and offer an administrator.' } }];"
+      }
+    },
+    {
+      "id": "02d23d39-23e9-5f95-a91d-6c76efd5776b",
+      "name": "Find slots",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        500,
+        -100
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select find_slots($1::uuid, $2, $3, $4, $5, $6) as r",
+        "options": {
+          "queryReplacement": "={{ [ $('Tool call').first().json.tenant_id, $('Tool call').first().json.args.service ?? '', $('Tool call').first().json.args.branch ?? '', $('Tool call').first().json.args.doctor || null, $('Tool call').first().json.args.date_from || null, $('Tool call').first().json.args.date_to || null ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "b8449630-4590-5755-8986-3235895b3ab8",
+      "name": "Save client info",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        500,
+        40
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select save_client_info($1::uuid, (conversation_client($2::uuid)).id, $3, $4) as r",
+        "options": {
+          "queryReplacement": "={{ [ $('Tool call').first().json.tenant_id, $('Tool call').first().json.conversation_id, $('Tool call').first().json.args.name || null, $('Tool call').first().json.args.phone || null ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "7bd3a73d-d475-56a5-b3d2-88a7c47e0610",
+      "name": "Propose change",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        500,
+        180
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select propose_action($1::uuid, $2::uuid, $3, $4::jsonb) as r",
+        "options": {
+          "queryReplacement": "={{ [ $('Tool call').first().json.tenant_id, $('Tool call').first().json.conversation_id, ({ propose_booking: 'book', propose_reschedule: 'reschedule', propose_cancel: 'cancel' })[$('Tool call').first().json.tool], JSON.stringify($('Tool call').first().json.args ?? {}) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "83191880-ab4e-5fd3-8be7-80b5d0f292ce",
+      "name": "Tool result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        760,
+        40
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fb097553-c3af-5f66-bbbf-5491af2d1061",
+              "name": "result",
+              "value": "={{ $json.r.ok ? ($json.r.result ?? 'Done.') : 'Not done: ' + ($json.r.error ?? 'unknown error') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "c07dd5bd-9c51-5541-96cc-fb5cb443fbc6",
+      "name": "Confirm open proposal",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        500,
+        320
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select confirm_open_action($1::uuid, $2::uuid, $3::timestamptz) as r",
+        "options": {
+          "queryReplacement": "={{ [ $('Tool call').first().json.tenant_id, $('Tool call').first().json.conversation_id, $('Tool call').first().json.turn_started_at ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "28748de2-b462-555f-a059-9c76d2623fe2",
+      "name": "Calendar changed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        760,
+        320
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "898538a9-130d-52d0-aa45-85c288d403c5",
+              "leftValue": "={{ $json.r.ok && !!$json.r.appointment_id && !$json.r.already }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "4a1ef16e-ebcf-55e7-bcdf-4e3ae35b1667",
+      "name": "Sync calendar",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        980,
+        280
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "int-gcal"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "appointment_id": "={{ $json.r.appointment_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "appointment_id",
+              "displayName": "appointment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "ef837300-c079-5716-99f9-fe7cdb1a2cfc",
+      "name": "Confirm result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        320
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "665dd0ce-3d78-5711-bbfa-c797ce3efb54",
+              "name": "result",
+              "value": "={{ $('Confirm open proposal').first().json.r.ok ? $('Confirm open proposal').first().json.r.result + '. Done; tell the client: ' + $('Confirm open proposal').first().json.r.reply : 'Not done: ' + ($('Confirm open proposal').first().json.r.reply ?? $('Confirm open proposal').first().json.r.error) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "f756ec88-815d-57f2-ba45-3a4103cc647d",
+      "name": "Escalation noted",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        460
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "62f2855a-6296-5349-ae5a-b0c8cdbe719d",
+              "name": "result",
+              "value": "={{ $json.operator\n  ? 'Handoff registered (' + $('Tool call').first().json.args.reason + '): an administrator takes this chat over after your reply. Tell the client an administrator will answer here soon.'\n  : 'Handoff registered (' + $('Tool call').first().json.args.reason + '), but this clinic has no administrator chat: the client gets the clinic phone right after your reply. Do not promise an answer from an administrator here.' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e097c10b-8f60-57dd-912c-d056290091c6",
+      "name": "Tool failed",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1420,
+        560
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8bc8eaa6-c7b2-5f30-8231-f0e2b8c6a91d",
+              "name": "result",
+              "value": "={{ 'TOOL_ERROR: ' + JSON.stringify($json.error ?? $json).slice(0, 300) + '. Apologize: a technical problem, an administrator will help.' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "cc92a620-df60-4242-b896-ed93ae1666be",
+      "name": "Embed query",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        -420
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.EMBEDDINGS_API_URL || 'http://stub:3000/v1') + '/embeddings' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'openai/text-embedding-3-small', input: String($json.args?.query ?? '').replace(/\\n/g, ' '), encoding_format: 'float' }) }}",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "cred-embeddings",
+          "name": "Embeddings"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueErrorOutput",
+      "notes": "Same endpoint and model as admin.reindex (cred-embeddings). A plain request, because the embeddings node retries up to 6 times with backoff and blows the turn budget."
+    },
+    {
+      "id": "6da26200-1e28-4367-9d01-9a2075489147",
+      "name": "Search articles",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        720,
+        -420
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select kb_search($1::uuid, $2, 4) as r",
+        "options": {
+          "queryReplacement": "={{ [ $('Tool call').first().json.tenant_id, JSON.stringify($json.data[0].embedding) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "3ec5a75e-ae85-4660-b430-2f9bb034fead",
+      "name": "Report tool failure",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1200,
+        560
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "ops-error"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "workflow": "={{ $workflow.name }}",
+            "node": "={{ $('Tool call').first().json.tool }}",
+            "execution_id": "={{ $execution.id }}",
+            "error": "={{ 'Tool ' + $('Tool call').first().json.tool + ' failed (tenant ' + $('Tool call').first().json.tenant_id + '): ' + String(typeof $json.error === 'string' ? $json.error : ($json.error?.message ?? JSON.stringify($json.error ?? $json))).slice(0, 500) }}",
+            "ref": "={{ null }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "workflow",
+              "displayName": "workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "node",
+              "displayName": "node",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "ref",
+              "displayName": "ref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "45d97f21-1270-45ae-bf8b-92d983628912",
+      "name": "Operator?",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        500,
+        460
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select tenant_has_operator($1::uuid) as operator",
+        "options": {
+          "queryReplacement": "={{ [ $('Tool call').first().json.tenant_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      },
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "connections": {
+    "Tool call": {
+      "main": [
+        [
+          {
+            "node": "Which tool",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Which tool": {
+      "main": [
+        [
+          {
+            "node": "Embed query",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Find slots",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save client info",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Propose change",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Confirm open proposal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Operator?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tool failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find slots": {
+      "main": [
+        [
+          {
+            "node": "Tool result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report tool failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save client info": {
+      "main": [
+        [
+          {
+            "node": "Tool result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report tool failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Propose change": {
+      "main": [
+        [
+          {
+            "node": "Tool result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report tool failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm open proposal": {
+      "main": [
+        [
+          {
+            "node": "Calendar changed?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report tool failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar changed?": {
+      "main": [
+        [
+          {
+            "node": "Sync calendar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Confirm result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sync calendar": {
+      "main": [
+        [
+          {
+            "node": "Confirm result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embed query": {
+      "main": [
+        [
+          {
+            "node": "Search articles",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report tool failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search articles": {
+      "main": [
+        [
+          {
+            "node": "Articles found",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report tool failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report tool failure": {
+      "main": [
+        [
+          {
+            "node": "Tool failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Operator?": {
+      "main": [
+        [
+          {
+            "node": "Escalation noted",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report tool failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "Agent tools, one branch each. Tenant and conversation always come from the turn context, never from the model. A technical failure answers TOOL_ERROR, which core.turn escalates."
+}

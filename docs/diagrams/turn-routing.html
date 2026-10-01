@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Routing a turn before any LLM call · Greeter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #eb6c36;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', 'Noto Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Flowchart · Greeter · turn routing</p>
+    <h1>Routing a turn before any LLM call</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 496" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="turn-routing-title turn-routing-desc">
+        <title id="turn-routing-title">Routing a turn before any LLM call</title>
+        <desc id="turn-routing-desc">After begin_turn() takes the lease, five conditions are checked in order: give up after repeated failure, button callback, operator conversation, urgent text, and otherwise an AI agent turn.</desc>
+        <defs>
+<marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+<marker id="arrow-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+<marker id="arrow-accent-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+<marker id="arrow-link-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#4f5d75" stroke-width="1.2"/></marker>
+        </defs>
+        <rect width="100%" height="100%" fill="#f5f5f5"/>
+<path d="M224,188 L248,188 Q256,188 256,180 L256,76 Q256,68 264,68 L672,68" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect x="324" y="50" width="280" height="12" rx="2" fill="#f5f5f5"/>
+<text x="464" y="59" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">1 · ALREADY FAILED 3× OR AN AGENT TURN DIED MIDWAY</text>
+<path d="M224,208 L272,208 Q280,208 280,200 L280,156 Q280,148 288,148 L672,148" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect x="420" y="130" width="112" height="12" rx="2" fill="#f5f5f5"/>
+<text x="476" y="139" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">2 · BUTTON CALLBACK</text>
+<path d="M224,228 L672,228" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect x="346" y="210" width="204" height="12" rx="2" fill="#f5f5f5"/>
+<text x="448" y="219" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">3 · CONVERSATION IS WITH AN OPERATOR</text>
+<path d="M224,248 L272,248 Q280,248 280,256 L280,300 Q280,308 288,308 L672,308" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect x="422" y="290" width="108" height="12" rx="2" fill="#f5f5f5"/>
+<text x="476" y="299" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.02em">4 · is_urgent(text)</text>
+<path d="M224,268 L248,268 Q256,268 256,276 L256,380 Q256,388 264,388 L672,388" fill="none" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+<rect x="408" y="370" width="112" height="12" rx="2" fill="#f5f5f5"/>
+<text x="464" y="379" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">5 · EVERYTHING ELSE</text>
+<rect x="40" y="168" width="184" height="120" rx="6" fill="#f5f5f5"/>
+<rect x="40" y="168" width="184" height="120" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+<text x="132.0" y="226.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">begin_turn()</text>
+<text x="132.0" y="240.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">lease and context</text>
+<rect x="672" y="40" width="248" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="672" y="40" width="248" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="796.0" y="66.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">give_up</text>
+<text x="796.0" y="80.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">fallback reply + incident</text>
+<rect x="672" y="120" width="248" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="672" y="120" width="248" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="796.0" y="146.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">action</text>
+<text x="796.0" y="160.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">core.action, no LLM</text>
+<rect x="672" y="200" width="248" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="672" y="200" width="248" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="796.0" y="226.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">operator</text>
+<text x="796.0" y="240.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">forward to the client&#x27;s topic</text>
+<rect x="672" y="280" width="248" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="672" y="280" width="248" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="796.0" y="306.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">urgent</text>
+<text x="796.0" y="320.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">emergency phone + escalation</text>
+<rect x="672" y="360" width="248" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="672" y="360" width="248" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="796.0" y="386.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">text</text>
+<text x="796.0" y="400.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">AI agent turn</text>
+<line x1="40" y1="448" x2="920" y2="448" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+<text x="40" y="472" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+<rect x="112" y="463" width="16" height="12" rx="2" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+<text x="134" y="472" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Lease + turn context</text>
+<rect x="260" y="463" width="16" height="12" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="282" y="472" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Route</text>
+<line x1="331" y1="469" x2="359" y2="469" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<text x="367" y="472" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Checked in order, 1 to 5</text>
+<line x1="513" y1="469" x2="541" y2="469" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+<text x="549" y="472" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Default: agent turn</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

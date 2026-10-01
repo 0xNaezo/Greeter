@@ -1,0 +1,679 @@
+{
+  "id": "eval-run",
+  "name": "eval.run",
+  "nodes": [
+    {
+      "id": "b411208f-6021-52c3-af95-4936ab9c763b",
+      "name": "Scenario",
+      "type": "n8n-nodes-base.evaluationTrigger",
+      "typeVersion": 4.7,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "source": "dataTable",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "eval_scenarios"
+        }
+      }
+    },
+    {
+      "id": "4bb31b60-c7c0-5062-8a2c-7b5ac385807e",
+      "name": "Turns",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const row = $input.first().json;\nconst setup = row.setup ? JSON.parse(row.setup) : null;\nconst visitor = 'eval-' + row.scenario + '-' + $execution.id;\nreturn JSON.parse(row.turns).map((text, i) => ({ json: { visitor, text, setup: i === 0 ? setup : null } }));"
+      }
+    },
+    {
+      "id": "340d9928-700a-584b-93c1-80d5e3c853a6",
+      "name": "Run turns",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "eval-run"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "visitor": "={{ $json.visitor }}",
+            "text": "={{ $json.text }}",
+            "setup": "={{ $json.setup }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "visitor",
+              "displayName": "visitor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "setup",
+              "displayName": "setup",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "each",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "dd55744d-c15a-5a59-8f84-a9e4a671f9e9",
+      "name": "Final state",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select eval_state($1::uuid) as s",
+        "options": {
+          "queryReplacement": "={{ [ $('Run turns').first().json.conversation_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "5555a5c3-c9d8-5ba8-b15f-3da4a7496d7d",
+      "name": "Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// checks of one scenario; a check that does not apply counts as passed in its own metric\nconst row = $('Scenario').first().json;\nconst expect = JSON.parse(row.expect || '{}');\nconst turns = $('Run turns').all().map(i => i.json.t ?? {});\nconst state = $('Final state').first().json.s ?? {};\nconst used = [...new Set(turns.flatMap(t => t.tools ?? []))];\nconst replies = turns.map(t => t.reply ?? '').join('\\n');\nconst escalations = turns.map(t => t.escalate ?? (t.streak >= 2 ? 'not_understood' : null)).filter(Boolean);\nconst m = { tools: 1, escalation: 1, outcome: 1, prices: 1, language: 1, content: 1 };\nconst fail = [];\nconst missing = (expect.tools ?? []).filter(t => !used.includes(t));\nconst forbidden = (expect.no_tools ?? []).filter(t => used.includes(t));\nif (missing.length) { m.tools = 0; fail.push('missing tools: ' + missing.join(', ')); }\nif (forbidden.length) { m.tools = 0; fail.push('forbidden tools used: ' + forbidden.join(', ')); }\nif ('escalate' in expect) {\n  const ok = expect.escalate === false ? !escalations.length : escalations.includes(expect.escalate);\n  if (!ok) { m.escalation = 0; fail.push(`escalation: expected ${expect.escalate}, got ${escalations.join(', ') || 'none'}`); }\n}\nif (expect.outcome) {\n  const got = state.booked > 0 ? 'booked' : state.cancelled > 0 ? 'cancelled' : state.moved > 0 ? 'moved' : 'none';\n  if (got !== expect.outcome) { m.outcome = 0; fail.push(`outcome: expected ${expect.outcome}, got ${got}`); }\n}\n// every amount written next to a currency must be a price from the clinic price list\nconst prices = new Set((state.prices ?? []).map(Number));\nconst amounts = [...replies.matchAll(/(\\d[\\d\\s.,]*\\d|\\d)\\s*(?:UAH|грн|гривень|гривен|гривні|₴|hryvnias?)/gi)]\n  .map(x => Number(x[1].replace(/[\\s,]/g, '').replace(/\\.0+$/, '')));\nconst invented = amounts.filter(a => !prices.has(a));\nif (invented.length) { m.prices = 0; fail.push('amounts not on the price list: ' + invented.join(', ')); }\nif (expect.lang) {\n  const want = [].concat(expect.lang);\n  const langs = turns.map(t => t.lang).filter(Boolean);\n  if (!langs.every(l => want.includes(l))) { m.language = 0; fail.push(`language: expected ${want.join('/')}, got ${langs.join(', ')}`); }\n}\nif (expect.contains && !new RegExp(expect.contains, 'i').test(replies)) { m.content = 0; fail.push(`reply does not match /${expect.contains}/`); }\nif (expect.not_contains && new RegExp(expect.not_contains, 'i').test(replies)) { m.content = 0; fail.push(`reply matches forbidden /${expect.not_contains}/`); }\nreturn [{ json: { ...m, pass: fail.length ? 0 : 1, scenario: row.scenario, category: row.category,\n  details: fail.length ? fail.join('; ') + ' | replies: ' + replies.replace(/\\s+/g, ' ').slice(0, 500) : 'ok' } }];"
+      }
+    },
+    {
+      "id": "2f645da2-ed3a-5075-86fc-35776ab749c8",
+      "name": "Save result",
+      "type": "n8n-nodes-base.evaluation",
+      "typeVersion": 4.8,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {
+        "operation": "setOutputs",
+        "source": "dataTable",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "eval_scenarios"
+        },
+        "outputs": {
+          "values": [
+            {
+              "outputName": "result",
+              "outputValue": "={{ $json.pass ? 'pass' : 'fail' }}"
+            },
+            {
+              "outputName": "details",
+              "outputValue": "={{ $json.details }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "68de3d1c-2942-5fa6-9723-79f53feec0d0",
+      "name": "Metrics",
+      "type": "n8n-nodes-base.evaluation",
+      "typeVersion": 4.8,
+      "position": [
+        1320,
+        0
+      ],
+      "parameters": {
+        "operation": "setMetrics",
+        "metric": "customMetrics",
+        "metrics": {
+          "assignments": [
+            {
+              "id": "pass",
+              "name": "pass",
+              "value": "={{ $('Score').first().json.pass }}",
+              "type": "number"
+            },
+            {
+              "id": "tools",
+              "name": "tools",
+              "value": "={{ $('Score').first().json.tools }}",
+              "type": "number"
+            },
+            {
+              "id": "escalation",
+              "name": "escalation",
+              "value": "={{ $('Score').first().json.escalation }}",
+              "type": "number"
+            },
+            {
+              "id": "outcome",
+              "name": "outcome",
+              "value": "={{ $('Score').first().json.outcome }}",
+              "type": "number"
+            },
+            {
+              "id": "prices",
+              "name": "prices",
+              "value": "={{ $('Score').first().json.prices }}",
+              "type": "number"
+            },
+            {
+              "id": "language",
+              "name": "language",
+              "value": "={{ $('Score').first().json.language }}",
+              "type": "number"
+            },
+            {
+              "id": "content",
+              "name": "content",
+              "value": "={{ $('Score').first().json.content }}",
+              "type": "number"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "25978ebf-2a28-54af-b25b-bd4108377e86",
+      "name": "Eval turn",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        260
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "visitor",
+              "type": "string"
+            },
+            {
+              "name": "text",
+              "type": "string"
+            },
+            {
+              "name": "setup",
+              "type": "object"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "988da9b6-484c-529a-95a2-92cf60d8c5a4",
+      "name": "Say",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        260
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select eval_say($1, $2, $3::jsonb) as m",
+        "options": {
+          "queryReplacement": "={{ [ $json.visitor, $json.text, $json.setup ? JSON.stringify($json.setup) : null ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "d13d2299-ed13-558b-b072-aa4026ea2104",
+      "name": "Process",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        440,
+        260
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "core-process"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "conversation_id": "={{ $json.m.conversation_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "conversation_id",
+              "displayName": "conversation_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "2a4963ec-0797-52ce-9f40-2eb71748bb27",
+      "name": "Turn result",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        660,
+        260
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select $1::text as conversation_id, eval_turn($1::uuid, $2) as t",
+        "options": {
+          "queryReplacement": "={{ [ $('Say').first().json.m.conversation_id, $('Say').first().json.m.message_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "ee7e35de-3499-5360-be68-6624d1f5b13a",
+      "name": "Report request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        480
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "admin/eval-report",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "cred-admin-token",
+          "name": "Admin webhook token"
+        }
+      },
+      "webhookId": "admin-eval-report"
+    },
+    {
+      "id": "beb2445a-9ab7-594a-9596-434dfba194f6",
+      "name": "Eval tenant",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        480
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select eval_tenant() as e",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "34d8871b-796d-58ef-8b95-35f56bf50547",
+      "name": "Results",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        480
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "returnAll": true,
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "eval_scenarios"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "52d0f00f-6b6d-5942-905c-13466c523121",
+      "name": "Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        480
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json).filter(r => r.scenario);\nconst info = $('Eval tenant').first().json.e ?? {};\nconst done = rows.filter(r => r.result);\nconst passed = done.filter(r => r.result === 'pass');\nconst pct = (a, b) => b ? (100 * a / b).toFixed(1) + '%' : '-';\nconst cats = {};\nfor (const r of done) { const c = cats[r.category] ??= { n: 0, ok: 0 }; c.n++; if (r.result === 'pass') c.ok++; }\nconst date = new Date().toISOString().slice(0, 10);\nconst md = [\n  `# Eval report ${date}`, '',\n  `Tenant \\`${info.slug}\\`, LLM profile \\`${info.llm_profile}\\`${Object.keys(info.models ?? {}).length ? ', models ' + JSON.stringify(info.models) : ''}.`,\n  `Scenarios: ${done.length} of ${rows.length}. Passed: ${passed.length} (${pct(passed.length, done.length)}), threshold 90%.`, '',\n  '| Category | Passed |', '| --- | --- |',\n  ...Object.entries(cats).map(([c, v]) => `| ${c} | ${v.ok} / ${v.n} (${pct(v.ok, v.n)}) |`), '',\n  '## Failures', '',\n  ...(done.filter(r => r.result !== 'pass').map(r => `- **${r.scenario}** (${r.category}): ${String(r.details).replace(/\\|/g, '/')}`)),\n  done.length === passed.length ? '- none' : '', ''];\nreturn [{ json: { file: `/reports/eval-${date}.md`, pass_rate: done.length ? passed.length / done.length : null,\n                  scenarios: done.length, passed: passed.length, text: md.join('\\n') } }];"
+      }
+    },
+    {
+      "id": "bf6d3a48-0595-5083-a890-81647735c98b",
+      "name": "To file",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        480
+      ],
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "text",
+        "options": {
+          "fileName": "={{ $json.file.split('/').pop() }}"
+        }
+      }
+    },
+    {
+      "id": "75b70fc3-36d6-5fb5-8ac1-58fe2190bd06",
+      "name": "Write report",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        480
+      ],
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ $('Report').first().json.file }}",
+        "dataPropertyName": "data",
+        "options": {}
+      }
+    },
+    {
+      "id": "224a3759-1800-50e6-a7c7-0c9537a6efdb",
+      "name": "Written",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1320,
+        480
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "42c782b0-187f-5512-b6d6-1712d5199a4e",
+              "name": "file",
+              "value": "={{ $('Report').first().json.file.replace('/reports/', 'reports/') }}",
+              "type": "string"
+            },
+            {
+              "id": "1e308e79-f488-51f5-9577-55e421b432f7",
+              "name": "scenarios",
+              "value": "={{ $('Report').first().json.scenarios }}",
+              "type": "number"
+            },
+            {
+              "id": "422036f6-8c55-5faf-b04e-e73e248935dc",
+              "name": "passed",
+              "value": "={{ $('Report').first().json.passed }}",
+              "type": "number"
+            },
+            {
+              "id": "d984d640-6569-5adb-8e05-2aa20575f341",
+              "name": "pass_rate",
+              "value": "={{ $('Report').first().json.pass_rate }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Scenario": {
+      "main": [
+        [
+          {
+            "node": "Turns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Turns": {
+      "main": [
+        [
+          {
+            "node": "Run turns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run turns": {
+      "main": [
+        [
+          {
+            "node": "Final state",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Final state": {
+      "main": [
+        [
+          {
+            "node": "Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score": {
+      "main": [
+        [
+          {
+            "node": "Save result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save result": {
+      "main": [
+        [
+          {
+            "node": "Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eval turn": {
+      "main": [
+        [
+          {
+            "node": "Say",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Say": {
+      "main": [
+        [
+          {
+            "node": "Process",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process": {
+      "main": [
+        [
+          {
+            "node": "Turn result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report request": {
+      "main": [
+        [
+          {
+            "node": "Eval tenant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eval tenant": {
+      "main": [
+        [
+          {
+            "node": "Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Results": {
+      "main": [
+        [
+          {
+            "node": "Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report": {
+      "main": [
+        [
+          {
+            "node": "To file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "To file": {
+      "main": [
+        [
+          {
+            "node": "Write report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write report": {
+      "main": [
+        [
+          {
+            "node": "Written",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "Agent evaluation (n8n Evaluations, dataset = Data Table eval_scenarios from evals/scenarios.json). Each scenario is a scripted client of the eval tenant talking to the real pipeline turn by turn; checks: tools, escalation, outcome, prices, language, content. POST /webhook/admin/eval-report writes reports/eval-<date>.md from the results."
+}

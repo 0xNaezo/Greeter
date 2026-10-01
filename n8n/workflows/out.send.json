@@ -1,0 +1,684 @@
+{
+  "id": "out-send",
+  "name": "out.send",
+  "nodes": [
+    {
+      "id": "4b60c919-033a-5adc-b23a-0c1f0b06bc6d",
+      "name": "Send",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "message_id",
+              "type": "number"
+            },
+            {
+              "name": "ack",
+              "type": "object"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "d51aa5e9-3054-5f71-9e99-ec2995884c25",
+      "name": "What",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "01398dfe-bf6c-53a1-b26e-a6e4ddc539d5",
+                    "leftValue": "={{ !!$json.ack?.callback_query_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ack"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "3f2c4f55-117f-5d3c-9ef6-4edbf0857c19",
+                    "leftValue": "={{ !!$json.message_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "message"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "7b6b0131-013c-5d47-9b91-7b044a3b5620",
+      "name": "Ack account",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        440,
+        -200
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select account_token($1::uuid, $2) as a",
+        "options": {
+          "queryReplacement": "={{ [ $json.ack.account_id, $env.APP_ENCRYPTION_KEY ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "ddb2030c-c626-5916-91d0-0951fca4aeb0",
+      "name": "Answer callback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        -200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.a.api_base }}/bot{{ $json.a.token }}/answerCallbackQuery",
+        "options": {
+          "timeout": 5000
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ callback_query_id: $('What').item.json.ack.callback_query_id, text: $('What').item.json.ack.text ?? undefined }) }}"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "b9b39c81-903f-52b9-a0d1-ae2ea82fc18b",
+      "name": "Load message",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        440,
+        60
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select outbound_message($1, $2) as m",
+        "options": {
+          "queryReplacement": "={{ [ $json.message_id, $env.APP_ENCRYPTION_KEY ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "d826b45c-bbb5-5305-ad40-70ff7d8760ba",
+      "name": "Pending?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        60
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "39565b86-1e4a-5ea7-bfd9-f768c4469c53",
+              "leftValue": "={{ !!$json.m }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "2d491353-46fd-516b-bf0f-76f9e7f3ed52",
+      "name": "Channel",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        880,
+        60
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "aaceb374-a5f2-57f3-b3cb-f58ee6cf5bd6",
+                    "leftValue": "={{ $json.m.channel === 'telegram' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telegram"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ccf219d7-2f30-546c-87d4-2b3ea08096ee",
+                    "leftValue": "={{ $json.m.channel === 'whatsapp' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "21f72f0e-aa76-5abe-a60d-3b7eab941966",
+      "name": "Telegram sendMessage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        -60
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.m.api_base }}/bot{{ $json.m.token }}/sendMessage",
+        "options": {
+          "timeout": 10000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 50
+            }
+          }
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify(Object.assign({ chat_id: $json.m.chat_id, text: $json.m.text }, $json.m.buttons.length ? { reply_markup: { inline_keyboard: $json.m.buttons.map(row => row.map(b => ({ text: b.text, callback_data: b.data }))) } } : {})) }}"
+      },
+      "onError": "continueErrorOutput",
+      "notes": "no retry: cron.reconcile retries with backoff (messages.next_attempt_at). A node retry would resend every item of a batch when the first one fails."
+    },
+    {
+      "id": "737b4217-1643-5baa-8234-37cec87b81be",
+      "name": "WhatsApp send",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        160
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.m.api_base }}/{{ $json.m.external_id }}/messages",
+        "options": {
+          "timeout": 10000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 50
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.m.token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const m = $json.m; const b = m.buttons.flat(); const base = { messaging_product: 'whatsapp', to: m.chat_id }; if (!b.length) return JSON.stringify({ ...base, type: 'text', text: { body: m.text } }); if (b.length <= 3) return JSON.stringify({ ...base, type: 'interactive', interactive: { type: 'button', body: { text: m.text }, action: { buttons: b.map(x => ({ type: 'reply', reply: { id: x.data, title: x.text.slice(0, 20) } })) } } }); return JSON.stringify({ ...base, type: 'interactive', interactive: { type: 'list', body: { text: m.text }, action: { button: 'Choose', sections: [{ title: 'Options', rows: b.slice(0, 10).map(x => ({ id: x.data, title: x.text.slice(0, 24) })) }] } } }); })() }}"
+      },
+      "onError": "continueErrorOutput",
+      "notes": "no retry: cron.reconcile retries with backoff (messages.next_attempt_at). A node retry would resend every item of a batch when the first one fails."
+    },
+    {
+      "id": "c2595c48-1953-54b8-9b37-a86d3c06dd44",
+      "name": "Mark sent",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1340,
+        -60
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select mark_sent($1, true, $2) as r",
+        "options": {
+          "queryReplacement": "={{ [ $('Load message').item.json.m.message_id, String($json.result?.message_id ?? $json.messages?.[0]?.id ?? '') ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "432ff327-bdef-5149-b8ad-42f02ddbb7da",
+      "name": "Mark failed",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1560,
+        160
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select mark_sent($1, false, null, $2, $3, $4, $5) as r",
+        "options": {
+          "queryReplacement": "={{ [ $json.message_id, $json.error, $json.permanent, $json.retry_after, $json.account ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "d59c0240-7370-4087-b4ab-c1ce8e6a4750",
+      "name": "Classify failure",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        160
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Delivery error -> what mark_sent needs. Built from the response only: the request URL carries the bot token.\nconst m = $('Load message').item.json.m;\nconst e = $json.error && typeof $json.error === 'object' ? $json.error : { message: String($json.error ?? 'unknown error') };\nconst body = e.error ?? e.response?.body ?? e.response?.data;\nconst text = [e.message, e.description, body && typeof body === 'object' ? JSON.stringify(body) : body]\n  .filter(Boolean).join(' ').replace(/bot\\d+:[\\w-]+/g, 'bot<token>').slice(0, 500);\nconst status = Number(e.statusCode ?? e.status ?? e.httpCode ?? e.response?.status ?? (text.match(/\\b([45]\\d\\d)\\b/) ?? [])[1] ?? 0);\nconst waCode = Number(body?.error?.code ?? 0);\n// the channel account itself is broken (token revoked, bot deleted): keep retrying, alert once per account\nconst account = m.channel === 'whatsapp'\n  ? status === 401 || status === 403 || [10, 190, 200].includes(waCode)\n  : status === 401 || status === 404;\n// this message can never be delivered (blocked, chat gone, 24 h window closed): drop it without an alert\nconst permanent = !account && (m.channel === 'whatsapp'\n  ? [131021, 131026, 131047].includes(waCode)\n  : status === 400 || status === 403 || /blocked|chat not found|deactivated/i.test(text));\nconst retryAfter = Number(body?.parameters?.retry_after ?? (text.match(/retry after (\\d+)/i) ?? [])[1] ?? 0) || null;\nreturn { json: { message_id: m.message_id, channel: m.channel, error: text, permanent, account, retry_after: retryAfter } };"
+      }
+    },
+    {
+      "id": "41146f0a-e49f-44ef-8c54-b488983c8dbf",
+      "name": "Report?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1780,
+        160
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "36fdfdbd-2a56-4d66-b3a1-5b7a6c84cb52",
+              "leftValue": "={{ $json.r.report }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "4fccadbe-683d-4182-8f30-8392dcd20138",
+      "name": "Report delivery",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2000,
+        160
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "ops-error"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "workflow": "={{ $workflow.name }}",
+            "node": "={{ 'Send' }}",
+            "execution_id": "={{ $execution.id }}",
+            "error": "={{ ($('Classify failure').item.json.account ? 'The ' + $('Classify failure').item.json.channel + ' account cannot send (check its token), messages wait and retry: ' : 'A ' + $('Classify failure').item.json.channel + ' message was dropped after ' + $json.r.attempts + ' failed attempts: ') + $('Classify failure').item.json.error }}",
+            "ref": "={{ $json.r.ref }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "workflow",
+              "displayName": "workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "node",
+              "displayName": "node",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "ref",
+              "displayName": "ref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Send": {
+      "main": [
+        [
+          {
+            "node": "What",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "What": {
+      "main": [
+        [
+          {
+            "node": "Ack account",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Load message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ack account": {
+      "main": [
+        [
+          {
+            "node": "Answer callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load message": {
+      "main": [
+        [
+          {
+            "node": "Pending?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pending?": {
+      "main": [
+        [
+          {
+            "node": "Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Channel": {
+      "main": [
+        [
+          {
+            "node": "Telegram sendMessage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram sendMessage": {
+      "main": [
+        [
+          {
+            "node": "Mark sent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Classify failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp send": {
+      "main": [
+        [
+          {
+            "node": "Mark sent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Classify failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify failure": {
+      "main": [
+        [
+          {
+            "node": "Mark failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark failed": {
+      "main": [
+        [
+          {
+            "node": "Report?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report?": {
+      "main": [
+        [
+          {
+            "node": "Report delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "none"
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "Delivers queued outbound messages (message_id) to Telegram / WhatsApp and marks sent_at; also answers Telegram button presses (ack). A failed delivery is retried by cron.reconcile with backoff; a broken channel account or a message given up on alerts the platform chat. Channel tokens are decrypted here only; successful executions are not saved."
+}

@@ -1,0 +1,351 @@
+{
+  "uid": "greeter-ops",
+  "title": "Clinic operations",
+  "description": null,
+  "tags": [
+    "greeter"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "refresh": "",
+  "panels": [
+    {
+      "id": 1,
+      "type": "table",
+      "title": "Open incidents (all clinics)",
+      "description": null,
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select id as \"#\", created_at as \"At\", workflow as \"Workflow\", node as \"Node\", error as \"Error\", execution_id as \"Execution\" from dash.incidents where status = 'open' order by id desc limit 50"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "filterable": true,
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Dialogs",
+      "description": "Click a session id to open its trace.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select started_at as \"Started\", channel as \"Channel\", messages_in as \"In\", messages_out as \"Out\", escalated as \"Operator\", booked as \"Booked\", round(llm_cost_usd::numeric, 4) as \"LLM $\", id::text as session_id from dash.sessions where tenant_id = '$tenant' and $__timeFilter(started_at) order by started_at desc limit 300"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "filterable": true,
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "session_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open trace",
+                    "url": "/grafana/d/greeter-trace/trace?var-session=${__value.raw}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Appointments",
+      "description": null,
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 15,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select starts_at as \"Visit\", client as \"Client\", phone as \"Phone\", service as \"Service\", doctor as \"Doctor\", branch as \"Branch\", status as \"Status\", source as \"Source\", confirmed as \"Confirmed\", in_calendar as \"In calendar\", price as \"Price\", review_score as \"Review\" from dash.appointments where tenant_id = '$tenant' and ('$branch' = 'all' or branch_id::text = '$branch') and $__timeFilter(starts_at) order by starts_at desc limit 300"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "filterable": true,
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Clients",
+      "description": null,
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select name as \"Name\", phone as \"Phone\", lang as \"Lang\", channels as \"Channels\", visits as \"Visits\", no_shows as \"No-shows\", last_visit as \"Last visit\", next_visit as \"Next visit\", created_at as \"Since\" from dash.clients where tenant_id = '$tenant' order by coalesce(next_visit, last_visit) desc nulls last limit 300"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "filterable": true,
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Escalations",
+      "description": null,
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select created_at as \"At\", reason as \"Reason\", notified_at is not null as \"Card posted\", round(reply_min::numeric, 1) as \"First reply, min\", returned_at as \"Returned to bot\", session_id::text as session_id from dash.escalations where tenant_id = '$tenant' and $__timeFilter(created_at) order by created_at desc limit 200"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "filterable": true,
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "session_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open trace",
+                    "url": "/grafana/d/greeter-trace/trace?var-session=${__value.raw}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "label": "Clinic",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "app-pg"
+        },
+        "refresh": 1,
+        "includeAll": false,
+        "query": "select name as __text, id::text as __value from dash.tenants order by slug = 'demo' desc, name",
+        "definition": "select name as __text, id::text as __value from dash.tenants order by slug = 'demo' desc, name"
+      },
+      {
+        "name": "branch",
+        "label": "Branch",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "app-pg"
+        },
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": "all",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "query": "select name as __text, id::text as __value from dash.branches where tenant_id = '$tenant' order by name",
+        "definition": "select name as __text, id::text as __value from dash.branches where tenant_id = '$tenant' order by name",
+        "description": "Applies to visits and bookings; dialogs are not tied to a branch."
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": []
+}

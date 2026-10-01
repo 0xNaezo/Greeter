@@ -1,0 +1,331 @@
+{
+  "id": "ops-replay",
+  "name": "ops.replay",
+  "nodes": [
+    {
+      "id": "b349979d-0ac0-512e-84b4-c80f314f9ba0",
+      "name": "Platform bot update",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ops/tg",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "cred-platform-webhook",
+          "name": "Platform bot webhook secret"
+        }
+      },
+      "webhookId": "ops-tg"
+    },
+    {
+      "id": "763a6d2c-b502-5136-9996-a5c4d217797f",
+      "name": "From clinic bot",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "body",
+              "type": "object"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "782eca32-669e-5c1f-951d-6832d2b8f937",
+      "name": "Replay button?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "83c30da0-bfac-5433-bee5-132ba69cdedc",
+              "leftValue": "={{ /^rp:\\d+$/.test($json.body?.callback_query?.data ?? '') && !!$env.PLATFORM_TG_CHAT_ID && String($json.body?.callback_query?.message?.chat?.id) === String($env.PLATFORM_TG_CHAT_ID) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "f3468ccf-ea10-5688-88ce-07813ebbbe4e",
+      "name": "Retry execution",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        -100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=http://n8n:5678/api/v1/executions/{{ $json.r.execution_id }}/retry",
+        "options": {
+          "timeout": 150000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "n8nApi",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ loadWorkflow: true }) }}"
+      },
+      "credentials": {
+        "n8nApi": {
+          "id": "cred-n8n-api",
+          "name": "n8n API"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "notes": "no retry: a replay is not idempotent, and the API answers only when the retried execution has finished"
+    },
+    {
+      "id": "071aec21-d72f-516a-a9da-bd6a792a6eed",
+      "name": "Answer button",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        0
+      ],
+      "parameters": {
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $('Replay button?').first().json.body.callback_query.id }}",
+        "additionalFields": {
+          "show_alert": true,
+          "text": "={{ $json.r.text }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "cred-tg-platform",
+          "name": "Platform bot"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000
+    },
+    {
+      "id": "d4e5aa40-6bc4-46f9-934c-9008fdd59572",
+      "name": "Claim incident",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select replay_claim($1) as r",
+        "options": {
+          "queryReplacement": "={{ [ Number($('Replay button?').first().json.body.callback_query.data.split(':')[1]) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "1a1cc8d0-c4ca-41f3-93e2-982fc2526d70",
+      "name": "Claimed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a78492d0-f201-4396-886b-39196370420f",
+              "leftValue": "={{ $json.r.claimed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "71644a1e-e4a3-46da-b27f-b52958fb080c",
+      "name": "Finish replay",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1100,
+        -100
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select finish_replay($1, $2, $3, $4) as r",
+        "options": {
+          "queryReplacement": "={{ [ $('Claim incident').first().json.r.incident_id, $json.id ? String($json.id) : null, $json.status ?? null, $json.error ? String($json.error.message ?? JSON.stringify($json.error)) : null ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Platform bot update": {
+      "main": [
+        [
+          {
+            "node": "Replay button?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "From clinic bot": {
+      "main": [
+        [
+          {
+            "node": "Replay button?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replay button?": {
+      "main": [
+        [
+          {
+            "node": "Claim incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retry execution": {
+      "main": [
+        [
+          {
+            "node": "Finish replay",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Finish replay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim incident": {
+      "main": [
+        [
+          {
+            "node": "Claimed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claimed?": {
+      "main": [
+        [
+          {
+            "node": "Retry execution",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Answer button",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finish replay": {
+      "main": [
+        [
+          {
+            "node": "Answer button",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "Replay button of an error alert: the platform bot posts to /webhook/ops/tg (secret token), or in.telegram hands the update over when the platform bot is a clinic bot. Takes the incident once, retries the failed execution through the n8n API with the current workflow version and marks the incident replayed only if the retry succeeded."
+}

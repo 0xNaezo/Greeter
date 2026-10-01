@@ -1,0 +1,89 @@
+{
+  "uid": "greeter-trace",
+  "title": "Trace",
+  "description": null,
+  "tags": [
+    "greeter"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "refresh": "",
+  "panels": [
+    {
+      "id": 1,
+      "type": "table",
+      "title": "Session trace",
+      "description": "Messages, agent decisions, tool calls and errors of one session; the n8n execution holds the full detail.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 20
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select at as \"At\", type as \"Type\", detail as \"Detail\", duration_ms as \"ms\", execution_id as \"n8n execution\" from dash.trace where session_id::text = '$session' order by at"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "filterable": true,
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "session",
+        "label": "Session id",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        }
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": []
+}

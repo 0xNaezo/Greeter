@@ -1,0 +1,751 @@
+{
+  "id": "in-widget",
+  "name": "in.widget",
+  "nodes": [
+    {
+      "id": "dece4d20-24b8-5137-a688-674975166f98",
+      "name": "Widget request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": ":account/:action",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "widget"
+    },
+    {
+      "id": "170e8077-1405-5dd7-bccd-1c1f5d1017e4",
+      "name": "Check account",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select channel_account_auth($1, 'widget') as acc",
+        "options": {
+          "queryReplacement": "={{ [ $json.params.account ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "d10b658d-387c-5fb9-9778-d5c4a216a296",
+      "name": "Known account?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "488a57d6-ac30-5c40-a1cb-48cb35242a5e",
+              "leftValue": "={{ !!$json.acc && ['session', 'send', 'poll'].includes($('Widget request').item.json.params.action) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "9b5afaa8-0746-5f0a-9c5a-cb28a756a94c",
+      "name": "Not found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        660,
+        200
+      ],
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 404
+        }
+      }
+    },
+    {
+      "id": "73aca4e5-9937-564c-8a86-7b324fc1753f",
+      "name": "Visitor",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1100,
+        -20
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "062aa52b-c7ed-52b9-8e02-5d7b6a5fc4f6",
+              "name": "visitor",
+              "value": "={{ $('Widget request').item.json.params.action === 'session' ? $execution.id + '-' + Math.random().toString(36).slice(2, 12) : String($('Widget request').item.json.body?.token ?? '').split('.')[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "9adeda9e-558b-579d-bf9c-43bc2794ec76",
+              "name": "signature",
+              "value": "={{ String($('Widget request').item.json.body?.token ?? '').split('.')[1] ?? '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "95563e64-80f6-5b97-a18d-7a75fa709fdc",
+      "name": "Sign visitor",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        -20
+      ],
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "value": "={{ $('Check account').item.json.acc.account_id + ':' + $json.visitor }}",
+        "dataPropertyName": "expected",
+        "encoding": "hex"
+      },
+      "credentials": {
+        "crypto": {
+          "id": "cred-widget-hmac",
+          "name": "Widget session HMAC"
+        }
+      }
+    },
+    {
+      "id": "16b64303-958f-52ea-9e96-47f5de089f5d",
+      "name": "Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1540,
+        -20
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "44448e40-90d8-5706-80e9-c8cd664fd2ac",
+                    "leftValue": "={{ $('Widget request').item.json.params.action === 'session' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "session"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "630c2ac9-3b5f-5ac8-8ae4-09d8ffbc59cf",
+                    "leftValue": "={{ $('Widget request').item.json.params.action === 'send' && $json.visitor !== '' && $json.signature === $json.expected && !!String($('Widget request').item.json.body?.text ?? '').trim() }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "send"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "4a77cc90-ea3d-5d51-a698-9fe8da49dda6",
+                    "leftValue": "={{ $('Widget request').item.json.params.action === 'poll' && $json.visitor !== '' && $json.signature === $json.expected }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "poll"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "invalid"
+        }
+      }
+    },
+    {
+      "id": "472f054c-dc6b-5de1-aef9-2057ab01f471",
+      "name": "Session",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1780,
+        -220
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "options": {
+          "responseCode": 200
+        },
+        "responseBody": "={{ JSON.stringify({ visitor: $json.visitor, token: $json.visitor + '.' + $json.expected, greeting: \"Hi! I'm the virtual assistant of \" + $('Check account').item.json.acc.tenant_name + \". Ask me about services and prices, or book a visit.\" }) }}"
+      }
+    },
+    {
+      "id": "36f01ba4-6043-57a1-a69f-64eddbbfc456",
+      "name": "Ingest",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1780,
+        -40
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select ingest_message($1::uuid, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8) as r",
+        "options": {
+          "queryReplacement": "={{ [ $('Check account').item.json.acc.account_id, $json.visitor, $json.visitor, 'w:' + $json.visitor + ':' + ($('Widget request').item.json.body.id ?? $execution.id), String($('Widget request').item.json.body.text).trim().slice(0, 2000), JSON.stringify($('Widget request').item.json.body.callback ? { callback: String($('Widget request').item.json.body.callback) } : {}), JSON.stringify($('Widget request').item.json.body.name ? { first_name: String($('Widget request').item.json.body.name).slice(0, 60) } : {}), $execution.id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "2cea062f-a85a-5d57-bab4-0852942d8ce7",
+      "name": "Accepted",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2000,
+        -40
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "options": {
+          "responseCode": 200
+        },
+        "responseBody": "={{ JSON.stringify({ ok: true, message_id: $json.r.message_id ?? null }) }}"
+      }
+    },
+    {
+      "id": "02595dc1-0c14-5ba0-98c1-428a9b6dea69",
+      "name": "New?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2220,
+        -40
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "27c4850a-8120-5752-8ba5-e47884c3ec83",
+              "leftValue": "={{ $('Ingest').item.json.r.is_new }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "c039a301-fbf0-5f10-828d-817be57e7a16",
+      "name": "Process conversation",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2440,
+        -60
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "core-process"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "conversation_id": "={{ $('Ingest').item.json.r.conversation_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "conversation_id",
+              "displayName": "conversation_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "38ef75ac-e3d4-511e-8609-d75a5ca5e142",
+      "name": "Poll",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1780,
+        140
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select widget_poll($1::uuid, $2, $3) as messages",
+        "options": {
+          "queryReplacement": "={{ [ $('Check account').item.json.acc.account_id, $json.visitor, Number($('Widget request').item.json.body.after ?? 0) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "f062bf46-d13b-57f7-9f4f-6ce617ed352f",
+      "name": "Messages",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2000,
+        140
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "options": {
+          "responseCode": 200
+        },
+        "responseBody": "={{ JSON.stringify({ messages: $json.messages }) }}"
+      }
+    },
+    {
+      "id": "3c6c20a9-e9df-5098-8793-2270536d2fae",
+      "name": "Invalid",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1780,
+        320
+      ],
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 401
+        }
+      }
+    },
+    {
+      "id": "0e101421-1f61-4c05-a9fb-bac43bf0a6a3",
+      "name": "Gate",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        660,
+        -20
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select widget_gate($1::uuid, $2, $3, $4, $5::jsonb) as gate",
+        "options": {
+          "queryReplacement": "={{ [ $('Check account').item.json.acc.account_id, $('Widget request').item.json.params.action, String($('Widget request').item.json.headers['x-forwarded-for'] ?? '').split(',')[0].trim() || 'direct', String($('Widget request').item.json.body?.token ?? '').split('.')[0], JSON.stringify($('Widget request').item.json.body ?? null) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "d3bfbb36-9ae5-4b2f-941e-54b767be58ae",
+      "name": "Allowed?",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        880,
+        -20
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5d323b91-75a4-4562-b34c-ad82b4bc8bb2",
+                    "leftValue": "={{ $json.gate === 'ok' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ok"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "41c9d233-0088-43a2-a299-976ac561716f",
+                    "leftValue": "={{ $json.gate === 'too_many' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "too many"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "bad request"
+        }
+      }
+    },
+    {
+      "id": "1e23f4d6-6d5d-4fb0-9406-1eaa9ee7cdd6",
+      "name": "Too many",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1100,
+        200
+      ],
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 429
+        }
+      }
+    },
+    {
+      "id": "4a6cf680-f723-4804-85c6-ccbaba18e5aa",
+      "name": "Bad request",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1100,
+        360
+      ],
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 400
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Widget request": {
+      "main": [
+        [
+          {
+            "node": "Check account",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check account": {
+      "main": [
+        [
+          {
+            "node": "Known account?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Known account?": {
+      "main": [
+        [
+          {
+            "node": "Gate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Not found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Visitor": {
+      "main": [
+        [
+          {
+            "node": "Sign visitor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign visitor": {
+      "main": [
+        [
+          {
+            "node": "Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Action": {
+      "main": [
+        [
+          {
+            "node": "Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ingest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Poll",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invalid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ingest": {
+      "main": [
+        [
+          {
+            "node": "Accepted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Accepted": {
+      "main": [
+        [
+          {
+            "node": "New?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New?": {
+      "main": [
+        [
+          {
+            "node": "Process conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll": {
+      "main": [
+        [
+          {
+            "node": "Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gate": {
+      "main": [
+        [
+          {
+            "node": "Allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Allowed?": {
+      "main": [
+        [
+          {
+            "node": "Visitor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Too many",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bad request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "none"
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "Web chat widget: POST /webhook/widget/<account>/{session|send|poll}. widget_gate rejects malformed input (400) and requests over the per-IP / per-visitor limits (429) before anything else runs. A visitor session is an HMAC-signed token (Crypto node, secret in credentials). Caddy limits the body size and answers CORS for WIDGET_ORIGINS."
+}

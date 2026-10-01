@@ -1,0 +1,827 @@
+{
+  "id": "core-action",
+  "name": "core.action",
+  "nodes": [
+    {
+      "id": "1b2b42df-a580-52f3-acf3-1e0e3ed9b91e",
+      "name": "Action",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "source",
+              "type": "string"
+            },
+            {
+              "name": "ctx",
+              "type": "object"
+            },
+            {
+              "name": "account_id",
+              "type": "string"
+            },
+            {
+              "name": "chat_id",
+              "type": "string"
+            },
+            {
+              "name": "data",
+              "type": "string"
+            },
+            {
+              "name": "callback_query_id",
+              "type": "string"
+            },
+            {
+              "name": "card_message_id",
+              "type": "number"
+            },
+            {
+              "name": "thread_id",
+              "type": "number"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "b7782815-a0ee-579a-b389-58c627d2015f",
+      "name": "Parse",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6198a04f-d3e5-54cc-afba-5c4f0461a753",
+              "name": "cb",
+              "value": "={{ $json.source === 'client' ? $json.ctx.messages[0].callback : $json.data }}",
+              "type": "string"
+            },
+            {
+              "id": "c9d05e33-bb16-5319-934f-62feaebd4db4",
+              "name": "kind",
+              "value": "={{ ($json.source === 'client' ? $json.ctx.messages[0].callback : $json.data).split(':')[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "dbce7482-9216-5bc2-842f-a41ff3c5abf4",
+              "name": "id",
+              "value": "={{ ($json.source === 'client' ? $json.ctx.messages[0].callback : $json.data).split(':')[1] }}",
+              "type": "string"
+            },
+            {
+              "id": "02ded7a3-1947-53d4-b152-69ca7a9f7c15",
+              "name": "arg",
+              "value": "={{ ($json.source === 'client' ? $json.ctx.messages[0].callback : $json.data).split(':')[2] ?? '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "5c6e3cb7-6c23-5528-8d66-183d338a0977",
+      "name": "Button",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c759c1a7-c2ae-5f54-837b-c99ced90db6c",
+                    "leftValue": "={{ $('Action').first().json.source === 'client' && $json.kind === 'pa' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "proposal"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f07c2c85-807b-5992-9705-ca0e99dff8d8",
+                    "leftValue": "={{ $('Action').first().json.source === 'client' && $json.kind === 'ap' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "reminder"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c5619ea6-4968-5675-8bca-84789832180c",
+                    "leftValue": "={{ $('Action').first().json.source === 'client' && $json.kind === 'rv' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "review"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "bc6e0aa5-ec6a-5251-96cc-7744c4f226a6",
+                    "leftValue": "={{ $('Action').first().json.source === 'operator' && $json.kind === 'rb' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "return to bot"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "unknown"
+        }
+      }
+    },
+    {
+      "id": "f575047b-af49-5881-8fe1-8f7c36477ad4",
+      "name": "Resolve proposal",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        700,
+        -240
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select resolve_pending($1::uuid, $2::uuid, $3::uuid, $4) as res",
+        "options": {
+          "queryReplacement": "={{ [ $('Action').first().json.ctx.tenant_id, $('Action').first().json.ctx.conversation_id, $json.id, $json.arg ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "547d3ae4-b90f-58a8-8819-2253b217e414",
+      "name": "Reminder answer",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        700,
+        -80
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select appointment_action($1::uuid, $2::uuid, $3::uuid, $4) as res",
+        "options": {
+          "queryReplacement": "={{ [ $('Action').first().json.ctx.tenant_id, $('Action').first().json.ctx.conversation_id, $json.id, $json.arg ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "b7402fba-84ce-55e2-966a-17b68d4819ac",
+      "name": "Review score",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        700,
+        80
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select record_review($1::uuid, $2::uuid, $3::uuid, $4::int) as res",
+        "options": {
+          "queryReplacement": "={{ [ $('Action').first().json.ctx.tenant_id, $('Action').first().json.ctx.conversation_id, $json.id, $json.arg ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "791c3bda-4a8e-53a1-899d-c650e3684732",
+      "name": "Calendar changed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        940,
+        -160
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f96ffe4d-d6c9-572b-bb05-1d251ce79fb5",
+              "leftValue": "={{ !!$json.res.appointment_id && $json.res.ok && !$json.res.already }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "de84ee69-d562-5372-bb9d-c5a669c44c6b",
+      "name": "Sync calendar",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1160,
+        -240
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "int-gcal"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "appointment_id": "={{ $json.res.appointment_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "appointment_id",
+              "displayName": "appointment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "c08e14a1-8dcd-560d-93e1-4807c7f48a49",
+      "name": "Client result",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        -80
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "0d4dd0a6-1ea4-5c32-9cee-850986992924",
+      "name": "Client reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1600,
+        -80
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9ba29184-dfff-5a6c-bc3c-fcbfa6aa5460",
+              "name": "reply",
+              "value": "={{ $('Client result').first().json.res.reply ?? null }}",
+              "type": "string"
+            },
+            {
+              "id": "0a62b968-6e97-5ebc-bc19-ef62e83544b2",
+              "name": "escalate",
+              "value": "={{ $('Client result').first().json.res.escalate ?? null }}",
+              "type": "string"
+            },
+            {
+              "id": "5f42fcbc-46b6-58cb-a1f9-183c2afc4422",
+              "name": "trace",
+              "value": "={{ [{ type: 'decision', data: { route: 'button', callback: $('Parse').first().json.cb, result: $('Client result').first().json.res.kind ?? $('Client result').first().json.res.error } }] }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "39a16345-4a04-5868-a437-1e4893651b29",
+      "name": "Return to bot",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        700,
+        260
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select return_to_bot($1::uuid, $2, $3::uuid) as res",
+        "options": {
+          "queryReplacement": "={{ [ $('Action').first().json.account_id, $('Action').first().json.chat_id, $json.id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "818d9254-870a-5f48-bae5-eacf2ecf0c5a",
+      "name": "Client notified?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        940,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3b36c1b7-59fc-5d28-bbe6-5efcc4125b40",
+              "leftValue": "={{ !!$json.res.message_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "40337723-7e15-5a30-a0a3-4c40a79e48b7",
+      "name": "Send back-to-bot message",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1160,
+        160
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "out-send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_id": "={{ $json.res.message_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "de79a8d2-64dd-5fd2-a1da-26681e421f2e",
+      "name": "Ack operator",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        940,
+        360
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "out-send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ack": "={{ ({ account_id: $('Action').first().json.account_id, callback_query_id: $('Action').first().json.callback_query_id, text: $('Return to bot').first().json.res.ok ? 'Returned to the bot' : 'Not possible: ' + $('Return to bot').first().json.res.error }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ack",
+              "displayName": "ack",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "3c34ec4c-7d87-5628-80d3-a12b79d9d63d",
+      "name": "Operator bot",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1160,
+        360
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select account_token($1::uuid, $2) as a",
+        "options": {
+          "queryReplacement": "={{ [ $('Action').first().json.account_id, $env.APP_ENCRYPTION_KEY ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "c6eaef4d-3002-53b9-851e-0e2c53482d47",
+      "name": "Note in topic",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1380,
+        360
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.a.api_base }}/bot{{ $json.a.token }}/sendMessage",
+        "options": {
+          "timeout": 10000
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Action').first().json.chat_id, message_thread_id: $('Action').first().json.thread_id || undefined, text: $('Return to bot').first().json.res.already ? 'ℹ️ The bot already handles this conversation.' : '🤖 Conversation returned to the bot.' }) }}"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "1d7d0a1a-97db-52d6-a6ea-76efb0c54fd5",
+      "name": "Unknown button",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        700,
+        420
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3de05438-bedb-5ea1-8f5e-ad36883a8cf8",
+              "name": "reply",
+              "value": "={{ null }}",
+              "type": "string"
+            },
+            {
+              "id": "8fe131a2-fa41-5ab1-88e6-148009e05444",
+              "name": "trace",
+              "value": "={{ [{ type: 'error', data: { stage: 'button', error: 'unknown callback', callback: $json.cb } }] }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Action": {
+      "main": [
+        [
+          {
+            "node": "Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse": {
+      "main": [
+        [
+          {
+            "node": "Button",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Button": {
+      "main": [
+        [
+          {
+            "node": "Resolve proposal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reminder answer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Review score",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return to bot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unknown button",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve proposal": {
+      "main": [
+        [
+          {
+            "node": "Calendar changed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reminder answer": {
+      "main": [
+        [
+          {
+            "node": "Calendar changed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review score": {
+      "main": [
+        [
+          {
+            "node": "Calendar changed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar changed?": {
+      "main": [
+        [
+          {
+            "node": "Sync calendar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Client result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sync calendar": {
+      "main": [
+        [
+          {
+            "node": "Client result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Client result": {
+      "main": [
+        [
+          {
+            "node": "Client reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Return to bot": {
+      "main": [
+        [
+          {
+            "node": "Client notified?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Ack operator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Client notified?": {
+      "main": [
+        [
+          {
+            "node": "Send back-to-bot message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ack operator": {
+      "main": [
+        [
+          {
+            "node": "Operator bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Operator bot": {
+      "main": [
+        [
+          {
+            "node": "Note in topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "Buttons, no LLM: confirm / reject a proposal, reminder answers, review scores (client); \"Return to bot\" (operator). Each is one SQL function."
+}

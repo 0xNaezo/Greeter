@@ -1,0 +1,474 @@
+{
+  "id": "handoff-forward",
+  "name": "handoff.forward",
+  "nodes": [
+    {
+      "id": "04a16433-ff48-571a-8bf2-d47cc863821f",
+      "name": "Batch",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "ctx",
+              "type": "object"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "53bed5da-b74a-5149-89a9-182b5c094873",
+      "name": "Route",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select operator_route($1::uuid, $2) as route",
+        "options": {
+          "queryReplacement": "={{ [ $json.ctx.conversation_id, $env.APP_ENCRYPTION_KEY ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "aee630d3-30c3-5432-9eee-b642469f30c2",
+      "name": "Topic ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "349c301b-ded3-5413-b9ea-29349ac7e272",
+              "leftValue": "={{ !!$json.route.topic_id || !$json.route.operator_chat_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "b68c6721-2fe0-5ebc-a17d-5c2f6dcece9e",
+      "name": "Post card first",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        660,
+        140
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "handoff-escalate"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "escalation_id": "={{ $('Route').first().json.route.escalation_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "escalation_id",
+              "displayName": "escalation_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "fbc35395-eb3f-551e-808e-eda1918ccf36",
+      "name": "Route again",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        880,
+        140
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select operator_route($1::uuid, $2) as route",
+        "options": {
+          "queryReplacement": "={{ [ $('Batch').first().json.ctx.conversation_id, $env.APP_ENCRYPTION_KEY ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "8837b986-76b9-52f9-815b-c66c27868071",
+      "name": "Forward",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "036be913-19be-52f3-90a7-38fbe49861f6",
+      "name": "Operator group?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d915067b-6667-576f-895d-6fdd4b825020",
+              "leftValue": "={{ !!$json.route.operator_chat_id && !!$json.route.topic_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "a31ef5d7-f351-54b3-b6aa-b9068941f7e4",
+      "name": "Post to topic",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        -60
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.route.bot.api_base }}/bot{{ $json.route.bot.token }}/sendMessage",
+        "options": {
+          "timeout": 10000
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $json.route.operator_chat_id, message_thread_id: Number($json.route.topic_id), text: '💬 ' + $json.route.client_name + ':\\n' + $('Batch').first().json.ctx.messages.map(m => m.text ?? '').join('\\n') }) }}"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "cc13cdb4-c376-542d-8703-22a750673508",
+      "name": "Forwarded",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1760,
+        0
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "909eca17-bcf3-538a-b17f-0a42256b655c",
+              "name": "reply",
+              "value": "={{ null }}",
+              "type": "string"
+            },
+            {
+              "id": "9ea4231d-c17f-57cf-8398-98e26ed8faba",
+              "name": "trace",
+              "value": "={{ [{ type: 'decision', data: { route: 'operator', forwarded: $('Batch').first().json.ctx.message_ids.length } }] }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "4452ea98-db31-4c50-866b-72d187ee3ac9",
+      "name": "Topic gone?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1760,
+        160
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8545bd00-a095-4b82-98b4-9a0b42862785",
+              "leftValue": "={{ /thread not found|TOPIC_|\\b403\\b|Forbidden/i.test(JSON.stringify($json.error ?? $json)) && !$('Reset topic').isExecuted }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "8a11f45a-e65a-40ee-8fd8-5bb74b5a9754",
+      "name": "Reset topic",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1980,
+        340
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select reset_client_topic($1::uuid, $2::bigint)",
+        "options": {
+          "queryReplacement": "={{ [ $('Forward').first().json.route.client_id, $('Forward').first().json.route.topic_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "0c4ff482-7ba9-4f38-a91f-4ea8e63a8c17",
+      "name": "Forward failed",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        160
+      ],
+      "parameters": {
+        "errorMessage": "={{ 'Forwarding to the operator topic failed: ' + ($json.error ? String($json.error.message ?? JSON.stringify($json.error)) : 'no operator group or topic').slice(0, 400) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Batch": {
+      "main": [
+        [
+          {
+            "node": "Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route": {
+      "main": [
+        [
+          {
+            "node": "Topic ready?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Topic ready?": {
+      "main": [
+        [
+          {
+            "node": "Forward",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Post card first",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post card first": {
+      "main": [
+        [
+          {
+            "node": "Route again",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route again": {
+      "main": [
+        [
+          {
+            "node": "Forward",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forward": {
+      "main": [
+        [
+          {
+            "node": "Operator group?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Operator group?": {
+      "main": [
+        [
+          {
+            "node": "Post to topic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Forward failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to topic": {
+      "main": [
+        [
+          {
+            "node": "Forwarded",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Topic gone?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Topic gone?": {
+      "main": [
+        [
+          {
+            "node": "Reset topic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Forward failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reset topic": {
+      "main": [
+        [
+          {
+            "node": "Post card first",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "While the operator has the conversation: client messages go to the client topic; the bot stays silent. A deleted topic is created again with the card; any other failure fails the turn, and after three attempts core.process sends the client the clinic phone and gives the conversation back to the bot."
+}

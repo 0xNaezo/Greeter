@@ -1,0 +1,48 @@
+{
+  "slug": "smile",
+  "name": "Smile Studio",
+  "timezone": "Europe/Kyiv",
+  "llm_profile": "openrouter",
+  "config": {
+    "about": "Smile Studio is a family dental clinic in the centre of Lviv: check-ups, hygiene, fillings, children's dentistry and whitening. Payment by card or cash.",
+    "tone": "Friendly and brief, like a good receptionist. Plain words, no emojis.",
+    "languages": ["uk", "en"],
+    "default_lang": "uk",
+    "emergency_phone": "+380 32 000 22 11",
+    "operator": { "chat_id": null, "sla_min": 15 },
+    "booking": { "slot_step_min": 30, "lead_min": 120, "horizon_days": 21 },
+    "followups": { "review": true, "no_show": true, "reactivation": { "enabled": false } },
+    "models": { "openrouter": "openai/gpt-4.1-mini", "groq": "llama-3.3-70b-versatile" }
+  },
+  "branches": [
+    {
+      "slug": "rynok", "name": "Smile Studio Rynok", "address": "3 Rynok Sq, Lviv", "phone": "+380 32 000 22 00",
+      "hours": { "mon": "09:00-19:00", "tue": "09:00-19:00", "wed": "09:00-19:00", "thu": "09:00-19:00", "fri": "09:00-18:00", "sat": "10:00-14:00", "sun": null }
+    }
+  ],
+  "services": [
+    { "slug": "checkup", "name": "Check-up and consultation", "price": 400, "duration_min": 30, "description": "Exam and treatment plan." },
+    { "slug": "hygiene", "name": "Professional cleaning", "price": 1500, "duration_min": 60 },
+    { "slug": "filling", "name": "Filling", "price": 1300, "price_note": "from", "duration_min": 60 },
+    { "slug": "kids-checkup", "name": "Children's check-up", "price": 350, "duration_min": 30, "description": "Ages 3-12." },
+    { "slug": "sealants", "name": "Fissure sealants (per tooth)", "price": 450, "duration_min": 20 },
+    { "slug": "whitening", "name": "Whitening", "price": 5500, "duration_min": 90 },
+    { "slug": "xray", "name": "Dental X-ray", "price": 200, "duration_min": 10 },
+    { "slug": "extraction", "name": "Tooth extraction", "price": 1200, "price_note": "from", "duration_min": 45 }
+  ],
+  "doctors": [
+    { "slug": "hnatiuk", "name": "Dr. Roksolana Hnatiuk", "specialty": "General dentist",
+      "services": ["checkup", "filling", "xray", "extraction"],
+      "schedule": [{ "branch": "rynok", "days": ["mon", "tue", "wed", "thu", "fri"], "from": "09:00", "to": "17:00" }] },
+    { "slug": "senyk", "name": "Oksana Senyk", "specialty": "Dental hygienist",
+      "services": ["hygiene", "whitening", "sealants"],
+      "schedule": [{ "branch": "rynok", "days": ["mon", "wed", "fri"], "from": "10:00", "to": "18:00" },
+                   { "branch": "rynok", "days": ["sat"], "from": "10:00", "to": "14:00" }] },
+    { "slug": "kvit", "name": "Dr. Marko Kvit", "specialty": "Paediatric dentist",
+      "services": ["kids-checkup", "sealants", "filling", "checkup"],
+      "schedule": [{ "branch": "rynok", "days": ["tue", "thu"], "from": "12:00", "to": "19:00" }] }
+  ],
+  "channels": [
+    { "channel": "widget", "external_id": "smile-widget", "name": "smile-studio.example site widget" }
+  ]
+}

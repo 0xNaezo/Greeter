@@ -1,0 +1,362 @@
+{
+  "id": "ops-error",
+  "name": "ops.error",
+  "nodes": [
+    {
+      "id": "ff94edb7-61f8-515e-a55a-a34d235f94eb",
+      "name": "Workflow failed",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "084363f0-e935-51b4-9453-0a750165dd39",
+      "name": "Record incident",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select record_incident($1, $2, $3, $4, $5, $6, $7) as r",
+        "options": {
+          "queryReplacement": "={{ [ $json.workflow || 'unknown', $json.node || null, $json.execution_id || null, $json.error || 'unknown error', $json.url || null, $json.ref || null, $json.replayable === true ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "46302b9a-952c-5e8a-bf57-53cb7ec8321f",
+      "name": "Alert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d6cfb92f-a1f0-5ccc-a812-ae0052992ae3",
+              "leftValue": "={{ $json.r.alert }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "be0dc51c-6a27-54a9-b355-edcbd58f9e39",
+      "name": "Alert with Replay",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        -100
+      ],
+      "parameters": {
+        "chatId": "={{ $env.PLATFORM_TG_CHAT_ID || '0' }}",
+        "text": "={{ ($('From failure').isExecuted ? '🔴 ' + $json.r.workflow + ' failed' + ($json.r.replayable ? '' : ' (retried automatically)') : '🟠 ' + $json.r.workflow) + ($json.r.node ? ' at \"' + $json.r.node + '\"' : '') }}\n{{ String($json.r.error ?? '').slice(0, 500) }}\n\n{{ $json.r.execution_id ? 'Execution ' + $json.r.execution_id + ' · ' : '' }}incident #{{ $json.r.incident_id }}{{ $json.r.open_last_10m > 1 ? ' · ' + $json.r.open_last_10m + ' incidents of this workflow in 10 min' : '' }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🔁 Replay",
+                    "additionalFields": {
+                      "callback_data": "=rp:{{ $json.r.incident_id }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "cred-tg-platform",
+          "name": "Platform bot"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "4936bcdb-ab48-4cba-87bc-dedafa6900da",
+      "name": "From failure",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        -120
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "990920aa-b984-44c2-9d3e-91233bd80cde",
+              "name": "workflow",
+              "value": "={{ $json.workflow?.name ?? 'unknown' }}",
+              "type": "string"
+            },
+            {
+              "id": "8779557e-3d20-4f71-bb7f-b622c345ef01",
+              "name": "node",
+              "value": "={{ $json.execution?.lastNodeExecuted ?? $json.trigger?.error?.node?.name ?? null }}",
+              "type": "string"
+            },
+            {
+              "id": "714f9023-2065-4ffa-b42c-aca604dbe0e8",
+              "name": "execution_id",
+              "value": "={{ $json.execution?.id ?? null }}",
+              "type": "string"
+            },
+            {
+              "id": "2717993a-d17c-4572-bdef-c8483e13befa",
+              "name": "error",
+              "value": "={{ $json.execution?.error?.message ?? $json.trigger?.error?.message ?? 'unknown error' }}",
+              "type": "string"
+            },
+            {
+              "id": "25b580f7-def5-45a7-a85d-39e7e6c047a9",
+              "name": "url",
+              "value": "={{ $json.execution?.url ?? null }}",
+              "type": "string"
+            },
+            {
+              "id": "fb46ca49-2e74-4e3d-90c0-e61beaf23891",
+              "name": "replayable",
+              "value": "={{ !['core.process', 'core.turn', 'core.action', 'agent.tools', 'handoff.escalate', 'handoff.forward', 'out.send', 'int.gcal'].includes($json.workflow?.name) }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "notes": "Failures of workflows that cron.reconcile (or their caller) retries anyway are not replayable: a Replay would forward, send or book twice."
+    },
+    {
+      "id": "6c7acfe8-e780-4dc0-aaa8-034e017b92d4",
+      "name": "Report",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        120
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "workflow",
+              "type": "string"
+            },
+            {
+              "name": "node",
+              "type": "string"
+            },
+            {
+              "name": "execution_id",
+              "type": "string"
+            },
+            {
+              "name": "error",
+              "type": "string"
+            },
+            {
+              "name": "url",
+              "type": "string"
+            },
+            {
+              "name": "ref",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "40d5338d-332a-4189-978d-cd90a55457bd",
+      "name": "Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        100
+      ],
+      "parameters": {
+        "chatId": "={{ $env.PLATFORM_TG_CHAT_ID || '0' }}",
+        "text": "={{ ($('From failure').isExecuted ? '🔴 ' + $json.r.workflow + ' failed' + ($json.r.replayable ? '' : ' (retried automatically)') : '🟠 ' + $json.r.workflow) + ($json.r.node ? ' at \"' + $json.r.node + '\"' : '') }}\n{{ String($json.r.error ?? '').slice(0, 500) }}\n\n{{ $json.r.execution_id ? 'Execution ' + $json.r.execution_id + ' · ' : '' }}incident #{{ $json.r.incident_id }}{{ $json.r.open_last_10m > 1 ? ' · ' + $json.r.open_last_10m + ' incidents of this workflow in 10 min' : '' }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "cred-tg-platform",
+          "name": "Platform bot"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "24b92e9b-42d9-4246-952e-5a44ed8bbb1f",
+      "name": "Replayable?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d1249fef-e20c-4274-9242-fb9d3c8793f2",
+              "leftValue": "={{ $json.r.replayable }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Workflow failed": {
+      "main": [
+        [
+          {
+            "node": "From failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record incident": {
+      "main": [
+        [
+          {
+            "node": "Alert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert?": {
+      "main": [
+        [
+          {
+            "node": "Replayable?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "From failure": {
+      "main": [
+        [
+          {
+            "node": "Record incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report": {
+      "main": [
+        [
+          {
+            "node": "Record incident",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replayable?": {
+      "main": [
+        [
+          {
+            "node": "Alert with Replay",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "Every failed execution and every problem a workflow reports (Report input): record an incident, alert the platform chat (deduplicated per workflow/node for 10 minutes); failed executions get a Replay button."
+}

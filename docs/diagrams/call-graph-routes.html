@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workflow call graph: direct routes, schedules and admin · Greeter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #eb6c36;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', 'Noto Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Dependency graph · Greeter · workflows (2 of 2)</p>
+    <h1>Workflow call graph: direct routes, schedules and admin</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 792" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="call-graph-routes-title call-graph-routes-desc">
+        <title id="call-graph-routes-title">Workflow call graph: direct routes, schedules and admin</title>
+        <desc id="call-graph-routes-desc">in.telegram also calls ops.replay, handoff.operator_reply, core.action and out.send; cron.reconcile calls handoff.escalate, int.gcal and out.send; the reminder, SLA and follow-up crons call out.send; admin.onboard calls admin.reindex.</desc>
+        <defs>
+<marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+<marker id="arrow-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+<marker id="arrow-accent-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+<marker id="arrow-link-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#4f5d75" stroke-width="1.2"/></marker>
+        </defs>
+        <rect width="100%" height="100%" fill="#f5f5f5"/>
+<rect x="40" y="40" width="160" height="672" rx="8" fill="none" stroke="rgba(45,49,66,0.16)" stroke-width="0.8"/>
+<rect x="52" y="44" width="76" height="12" rx="2" fill="#f5f5f5"/>
+<text x="90.0" y="53" fill="#7a8399" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">ENTRY POINTS</text>
+<rect x="376" y="40" width="192" height="672" rx="8" fill="none" stroke="rgba(45,49,66,0.16)" stroke-width="0.8"/>
+<rect x="388" y="44" width="60" height="12" rx="2" fill="#f5f5f5"/>
+<text x="418.0" y="53" fill="#7a8399" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">WORKFLOWS</text>
+<rect x="784" y="40" width="136" height="672" rx="8" fill="none" stroke="rgba(45,49,66,0.16)" stroke-width="0.8"/>
+<rect x="796" y="44" width="44" height="12" rx="2" fill="#f5f5f5"/>
+<text x="818.0" y="53" fill="#7a8399" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">SHARED</text>
+<path d="M184,156 L272,156 Q280,156 280,148 L280,104 Q280,96 288,96 L392,96" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M184,168 L392,168" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M184,180 L296,180 Q304,180 304,188 L304,232 Q304,240 312,240 L392,240" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M120,192 L120,268 Q120,276 128,276 L800,276" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M552,168 L800,168" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M184,372 L280,372 Q288,372 288,364 L288,320 Q288,312 296,312 L392,312" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M184,384 L392,384" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M184,396 L296,396 Q304,396 304,404 L304,412 Q304,420 312,420 L800,420" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M184,456 L392,456" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M184,528 L800,528" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M184,600 L800,600" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M184,672 L800,672" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect x="56" y="144" width="128" height="48" rx="24" fill="#f5f5f5"/>
+<rect x="56" y="144" width="128" height="48" rx="24" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+<text x="120.0" y="172.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">in.telegram</text>
+<rect x="56" y="360" width="128" height="48" rx="24" fill="#f5f5f5"/>
+<rect x="56" y="360" width="128" height="48" rx="24" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+<text x="120.0" y="388.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">cron.reconcile</text>
+<rect x="56" y="432" width="128" height="48" rx="24" fill="#f5f5f5"/>
+<rect x="56" y="432" width="128" height="48" rx="24" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+<text x="120.0" y="460.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">admin.onboard</text>
+<rect x="56" y="504" width="128" height="48" rx="24" fill="#f5f5f5"/>
+<rect x="56" y="504" width="128" height="48" rx="24" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+<text x="120.0" y="532.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">cron.reminders</text>
+<rect x="56" y="576" width="128" height="48" rx="24" fill="#f5f5f5"/>
+<rect x="56" y="576" width="128" height="48" rx="24" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+<text x="120.0" y="604.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">cron.operator_sla</text>
+<rect x="56" y="648" width="128" height="48" rx="24" fill="#f5f5f5"/>
+<rect x="56" y="648" width="128" height="48" rx="24" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+<text x="120.0" y="676.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">cron.followups</text>
+<rect x="392" y="72" width="160" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="392" y="72" width="160" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="472.0" y="100.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">ops.replay</text>
+<rect x="392" y="144" width="160" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="392" y="144" width="160" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="472.0" y="172.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">handoff.operator_reply</text>
+<rect x="392" y="216" width="160" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="392" y="216" width="160" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="472.0" y="244.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">core.action</text>
+<rect x="392" y="288" width="160" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="392" y="288" width="160" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<rect x="518" y="294" width="28" height="12" rx="2" fill="none" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/><text x="532" y="303" fill="#4f5d75" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">3 IN</text>
+<text x="472.0" y="322.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">handoff.escalate</text>
+<rect x="392" y="360" width="160" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="392" y="360" width="160" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<rect x="518" y="366" width="28" height="12" rx="2" fill="none" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/><text x="532" y="375" fill="#4f5d75" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">3 IN</text>
+<text x="472.0" y="394.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">int.gcal</text>
+<rect x="392" y="432" width="160" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="392" y="432" width="160" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="472.0" y="460.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">admin.reindex</text>
+<rect x="800" y="144" width="104" height="552" rx="6" fill="#f5f5f5"/>
+<rect x="800" y="144" width="104" height="552" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+<rect x="870" y="150" width="28" height="12" rx="2" fill="none" stroke="rgba(235,108,54,0.50)" stroke-width="0.8"/><text x="884" y="159" fill="#eb6c36" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">9 IN</text>
+<text x="852.0" y="430.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">out.send</text>
+<line x1="40" y1="744" x2="920" y2="744" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+<text x="40" y="768" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+<rect x="112" y="759" width="20" height="12" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="138" y="768" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Entry point</text>
+<rect x="218" y="759" width="16" height="12" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="240" y="768" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Sub-workflow</text>
+<rect x="325" y="759" width="16" height="12" rx="2" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+<text x="347" y="768" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Shared sink</text>
+<line x1="427" y1="765" x2="455" y2="765" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<text x="463" y="768" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Calls</text>
+<rect x="512" y="758" width="20" height="14" rx="3" fill="none" stroke="rgba(45,49,66,0.16)" stroke-width="0.8"/>
+<text x="538" y="768" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Group</text>
+<rect x="587" y="758" width="28" height="12" rx="2" fill="none" stroke="rgba(45,49,66,0.30)" stroke-width="0.8"/><text x="601" y="767" fill="#4f5d75" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">3 IN</text>
+<text x="621" y="768" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Callers across both call graphs</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

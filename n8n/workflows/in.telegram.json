@@ -1,0 +1,940 @@
+{
+  "id": "in-telegram",
+  "name": "in.telegram",
+  "nodes": [
+    {
+      "id": "5abb9c00-8cba-5411-8038-eb5c7b6eae34",
+      "name": "Telegram update",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": ":account",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "tg"
+    },
+    {
+      "id": "69c57ce2-eb25-564b-9326-0cdb34983125",
+      "name": "Check account",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select channel_account_auth($1, 'telegram', $2) as acc",
+        "options": {
+          "queryReplacement": "={{ [ $json.params.account, $json.headers['x-telegram-bot-api-secret-token'] ?? null ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "d95dcd59-6abe-54e7-8226-b806ed02e1d5",
+      "name": "Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cd68f302-f8dd-539f-843a-0aa31a79851f",
+              "leftValue": "={{ !!$json.acc }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "2be9255e-ed57-542c-b4c7-0af132310ba8",
+      "name": "Reject",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        660,
+        140
+      ],
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 403
+        }
+      }
+    },
+    {
+      "id": "0bb5f352-3a00-562f-baef-7ece6c630297",
+      "name": "Ack",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        660,
+        -60
+      ],
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "3d4394e1-b8b0-5a85-8400-4d18edc8cbd3",
+      "name": "Route update",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        880,
+        -60
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7b11dd9b-94de-563b-9b2d-3492596f237f",
+                    "leftValue": "={{ /^rp:\\d+$/.test($('Telegram update').item.json.body.callback_query?.data ?? '') && !!$env.PLATFORM_TG_CHAT_ID && String($('Telegram update').item.json.body.callback_query?.message?.chat?.id) === String($env.PLATFORM_TG_CHAT_ID) }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "replay button"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "3b2becea-0f49-5e62-b3ce-ff3228aadb73",
+                    "leftValue": "={{ $('Telegram update').item.json.body.message?.chat?.type === 'private' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "client message"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "3c6ec199-c32b-5c0a-ab13-440f47295ac1",
+                    "leftValue": "={{ $('Telegram update').item.json.body.callback_query?.message?.chat?.type === 'private' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "client button"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0752dfde-9f14-56af-9272-81ccb358e7f9",
+                    "leftValue": "={{ String($('Telegram update').item.json.body.message?.chat?.id) === String($('Check account').item.json.acc.operator_chat_id) && !!$('Telegram update').item.json.body.message?.message_thread_id && !!$('Telegram update').item.json.body.message?.text && !$('Telegram update').item.json.body.message?.from?.is_bot }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "operator message"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "58457dd2-c0c0-58ff-ad60-7d9e42936989",
+                    "leftValue": "={{ String($('Telegram update').item.json.body.callback_query?.message?.chat?.id) === String($('Check account').item.json.acc.operator_chat_id) }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "operator button"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "ignore"
+        }
+      }
+    },
+    {
+      "id": "14e223dd-b5e5-56d8-aa17-94b732dd6929",
+      "name": "Client message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        -260
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2943fe6d-f6f6-538c-b5df-a442efb22031",
+              "name": "account_id",
+              "value": "={{ $('Check account').item.json.acc.account_id }}",
+              "type": "string"
+            },
+            {
+              "id": "33882c23-4526-5be6-a89f-5dae22e58b15",
+              "name": "user_id",
+              "value": "={{ String($('Telegram update').item.json.body.message.from.id) }}",
+              "type": "string"
+            },
+            {
+              "id": "9f3c568d-3567-5e94-8304-e1d8b35b44b5",
+              "name": "chat_id",
+              "value": "={{ String($('Telegram update').item.json.body.message.chat.id) }}",
+              "type": "string"
+            },
+            {
+              "id": "b9fe8964-0576-545e-9a0c-d2c8ed2bc895",
+              "name": "external_id",
+              "value": "={{ String($('Telegram update').item.json.body.update_id) }}",
+              "type": "string"
+            },
+            {
+              "id": "62f9bd96-f929-59fb-b145-d87597ec23b9",
+              "name": "text",
+              "value": "={{ $('Telegram update').item.json.body.message.text ?? $('Telegram update').item.json.body.message.caption ?? ($('Telegram update').item.json.body.message.contact ? 'My phone: ' + $('Telegram update').item.json.body.message.contact.phone_number : '[' + (Object.keys($('Telegram update').item.json.body.message).find(k => ['photo','voice','video','sticker','document','audio','location','video_note','animation'].includes(k)) ?? 'unsupported message') + ']') }}",
+              "type": "string"
+            },
+            {
+              "id": "3d0128d1-c94d-5444-a0ae-01c3d994d6b5",
+              "name": "payload",
+              "value": "={{ $('Telegram update').item.json.body.message.contact ? { contact: { phone_number: $('Telegram update').item.json.body.message.contact.phone_number, user_id: $('Telegram update').item.json.body.message.contact.user_id } } : {} }}",
+              "type": "object"
+            },
+            {
+              "id": "344fb275-526c-574f-be14-29c10e0c73ee",
+              "name": "profile",
+              "value": "={{ ({ first_name: $('Telegram update').item.json.body.message.from.first_name, last_name: $('Telegram update').item.json.body.message.from.last_name, username: $('Telegram update').item.json.body.message.from.username, language_code: $('Telegram update').item.json.body.message.from.language_code }) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "d14a2209-bc11-5a2c-a139-8318b6f113b7",
+      "name": "Client button",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        -60
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "81eb3b65-0481-5dc2-b21c-963c21c0905c",
+              "name": "account_id",
+              "value": "={{ $('Check account').item.json.acc.account_id }}",
+              "type": "string"
+            },
+            {
+              "id": "d1436ed7-ee81-52e5-b81a-0a74ddb235dd",
+              "name": "user_id",
+              "value": "={{ String($('Telegram update').item.json.body.callback_query.from.id) }}",
+              "type": "string"
+            },
+            {
+              "id": "0c4d3155-776f-54b8-bebb-775646564eeb",
+              "name": "chat_id",
+              "value": "={{ String($('Telegram update').item.json.body.callback_query.message.chat.id) }}",
+              "type": "string"
+            },
+            {
+              "id": "b31ff216-3d98-5b90-9e6a-3871a6b1457f",
+              "name": "external_id",
+              "value": "={{ 'cb:' + $('Telegram update').item.json.body.callback_query.id }}",
+              "type": "string"
+            },
+            {
+              "id": "657f70e5-47a5-5d7e-9083-16fe61ecef7e",
+              "name": "text",
+              "value": "={{ '[button] ' + (($('Telegram update').item.json.body.callback_query.message.reply_markup?.inline_keyboard ?? []).flat().find(b => b.callback_data === $('Telegram update').item.json.body.callback_query.data)?.text ?? $('Telegram update').item.json.body.callback_query.data) }}",
+              "type": "string"
+            },
+            {
+              "id": "a6cfeceb-31b2-5af7-802b-f476665a7d51",
+              "name": "payload",
+              "value": "={{ ({ callback: $('Telegram update').item.json.body.callback_query.data, callback_query_id: $('Telegram update').item.json.body.callback_query.id }) }}",
+              "type": "object"
+            },
+            {
+              "id": "b108e40f-ee08-523f-ab86-f400dcd84252",
+              "name": "profile",
+              "value": "={{ ({ first_name: $('Telegram update').item.json.body.callback_query.from.first_name, last_name: $('Telegram update').item.json.body.callback_query.from.last_name, username: $('Telegram update').item.json.body.callback_query.from.username, language_code: $('Telegram update').item.json.body.callback_query.from.language_code }) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "bff96f9b-6683-5f7c-b8ed-4656590fd800",
+      "name": "Ingest",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1360,
+        -160
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select ingest_message($1::uuid, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8) as r",
+        "options": {
+          "queryReplacement": "={{ [ $json.account_id, $json.user_id, $json.chat_id, $json.external_id, $json.text, JSON.stringify($json.payload), JSON.stringify($json.profile), $execution.id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "4e09a985-b3b4-50db-b1e8-986cf6747af6",
+      "name": "New?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1580,
+        -160
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dba89df5-910b-5e2f-a826-aa8fad49b9fa",
+              "leftValue": "={{ $json.r.is_new }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "7b7722ae-a3c4-5e90-8dc7-430a76ffabaa",
+      "name": "Process conversation",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1800,
+        -180
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "core-process"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "conversation_id": "={{ $json.r.conversation_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "conversation_id",
+              "displayName": "conversation_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "1871e04b-2a6b-55f0-9894-25401c65eef3",
+      "name": "Ack button",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1360,
+        20
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "out-send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ack": "={{ ({ account_id: $json.account_id, callback_query_id: $json.payload.callback_query_id }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ack",
+              "displayName": "ack",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "1c3327a4-1a11-5a95-8087-fd3ec1a8bf97",
+      "name": "Operator reply",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1120,
+        140
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "handoff-operator-reply"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "account_id": "={{ $('Check account').item.json.acc.account_id }}",
+            "chat_id": "={{ String($('Telegram update').item.json.body.message.chat.id) }}",
+            "thread_id": "={{ $('Telegram update').item.json.body.message.message_thread_id }}",
+            "message_id": "={{ String($('Telegram update').item.json.body.message.message_id) }}",
+            "text": "={{ $('Telegram update').item.json.body.message.text }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "account_id",
+              "displayName": "account_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "thread_id",
+              "displayName": "thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "ee752da7-337a-57fb-ad77-6a5a252a2749",
+      "name": "Operator button",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1120,
+        320
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "core-action"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "source": "operator",
+            "account_id": "={{ $('Check account').item.json.acc.account_id }}",
+            "chat_id": "={{ String($('Telegram update').item.json.body.callback_query.message.chat.id) }}",
+            "data": "={{ $('Telegram update').item.json.body.callback_query.data }}",
+            "callback_query_id": "={{ $('Telegram update').item.json.body.callback_query.id }}",
+            "card_message_id": "={{ $('Telegram update').item.json.body.callback_query.message.message_id }}",
+            "thread_id": "={{ $('Telegram update').item.json.body.callback_query.message.message_thread_id ?? null }}",
+            "ctx": "={{ null }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "source",
+              "displayName": "source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "account_id",
+              "displayName": "account_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "data",
+              "displayName": "data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "callback_query_id",
+              "displayName": "callback_query_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "card_message_id",
+              "displayName": "card_message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "thread_id",
+              "displayName": "thread_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            },
+            {
+              "id": "ctx",
+              "displayName": "ctx",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "93241195-4114-5a3e-8ffb-7efe6f6179cd",
+      "name": "Ignore",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        500
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "29c3d87d-b6e4-5a9c-be5c-7c967e50cd6b",
+      "name": "Replay",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1120,
+        -440
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "ops-replay"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "body": "={{ $('Telegram update').item.json.body }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "body",
+              "displayName": "body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram update": {
+      "main": [
+        [
+          {
+            "node": "Check account",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check account": {
+      "main": [
+        [
+          {
+            "node": "Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid?": {
+      "main": [
+        [
+          {
+            "node": "Ack",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ack": {
+      "main": [
+        [
+          {
+            "node": "Route update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route update": {
+      "main": [
+        [
+          {
+            "node": "Replay",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Client message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Client button",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Operator reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Operator button",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ignore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Client message": {
+      "main": [
+        [
+          {
+            "node": "Ingest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Client button": {
+      "main": [
+        [
+          {
+            "node": "Ingest",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Ack button",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ingest": {
+      "main": [
+        [
+          {
+            "node": "New?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New?": {
+      "main": [
+        [
+          {
+            "node": "Process conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "none"
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "Telegram webhook of every tenant bot: /webhook/tg/<channel account id>. Checks the secret token, acknowledges at once, routes client messages, button presses and operator replies. When the platform bot is this same bot, Replay buttons of error alerts arrive here and go to ops.replay."
+}

@@ -1,0 +1,527 @@
+{
+  "id": "admin-onboard",
+  "name": "admin.onboard",
+  "nodes": [
+    {
+      "id": "705ccace-665b-5128-a227-2ce9db809985",
+      "name": "Onboarding form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "path": "onboard",
+        "formTitle": "Connect a clinic",
+        "formDescription": "Upload the clinic config (tenant.json, see tenants/demo) and its knowledge base articles. Re-uploading updates the clinic.",
+        "formFields": {
+          "values": [
+            {
+              "fieldName": "tenant",
+              "fieldLabel": "Clinic config (tenant.json)",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "acceptFileTypes": ".json",
+              "requiredField": true
+            },
+            {
+              "fieldName": "kb",
+              "fieldLabel": "Knowledge base articles (.md)",
+              "fieldType": "file",
+              "multipleFiles": true,
+              "acceptFileTypes": ".md,.txt"
+            },
+            {
+              "fieldName": "telegram_token",
+              "fieldLabel": "Telegram bot token (optional)",
+              "fieldType": "password"
+            },
+            {
+              "fieldName": "operator_chat_id",
+              "fieldLabel": "Operator supergroup chat id (optional)",
+              "fieldType": "text",
+              "placeholder": "-100..."
+            },
+            {
+              "fieldName": "llm_profile",
+              "fieldLabel": "LLM",
+              "fieldType": "dropdown",
+              "defaultValue": "as in tenant.json",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "as in tenant.json"
+                  },
+                  {
+                    "option": "openrouter"
+                  },
+                  {
+                    "option": "groq"
+                  },
+                  {
+                    "option": "stub"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "webhookId": "onboard"
+    },
+    {
+      "id": "3173e7a5-0861-5d49-a264-4c21b2308396",
+      "name": "Read upload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// tenant.json (+ optional bot token / operator group from the form) and the knowledge base files\nconst item = $input.first();\nlet doc = null;\nconst articles = [];\nfor (const [key, meta] of Object.entries(item.binary ?? {})) {\n  const text = (await this.helpers.getBinaryDataBuffer(0, key)).toString('utf8');\n  if (key.startsWith('tenant')) doc = JSON.parse(text);\n  else articles.push({ name: String(meta.fileName ?? key).replace(/\\.(md|txt)$/i, ''), text });\n}\nif (!doc?.slug) throw new Error('Upload a tenant.json with at least \"slug\" and \"name\".');\ndelete doc.env; delete doc.extends;  // bootstrap-only keys\nconst token = String(item.json.telegram_token ?? '').trim();\nif (token) {\n  doc.channels = (doc.channels ?? []).filter(c => c.channel !== 'telegram');\n  doc.channels.push({ channel: 'telegram', external_id: token.split(':')[0], token, api_base: 'https://api.telegram.org' });\n}\nconst chat = String(item.json.operator_chat_id ?? '').trim();\nif (chat) doc.config = { ...(doc.config ?? {}), operator: { ...(doc.config?.operator ?? {}), chat_id: chat } };\nif (['openrouter', 'groq', 'stub'].includes(item.json.llm_profile)) doc.llm_profile = item.json.llm_profile;\nreturn [{ json: { slug: doc.slug, doc, articles } }];"
+      }
+    },
+    {
+      "id": "10ffb0c4-d9b1-5f9d-a294-c477d878f8d5",
+      "name": "Save clinic",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select upsert_tenant($1::jsonb, $2) as t",
+        "options": {
+          "queryReplacement": "={{ [ JSON.stringify($json.doc), $env.APP_ENCRYPTION_KEY ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "55296acd-9538-54ca-aafd-eb9a6f18818f",
+      "name": "Articles?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        -80
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4cfddad1-8c1d-5779-8bc5-fdeb4db233e2",
+              "leftValue": "={{ $('Read upload').first().json.articles.length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "8d31628d-6df9-5660-b425-3981aa86440d",
+      "name": "Index knowledge base",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        880,
+        -160
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "admin-reindex"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "tenant": "={{ $('Read upload').first().json.slug }}",
+            "articles": "={{ $('Read upload').first().json.articles }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "tenant",
+              "displayName": "tenant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "articles",
+              "displayName": "articles",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "ce2ed56a-ecb1-5bb4-826f-b7ad079dcae7",
+      "name": "Bot",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1100,
+        -80
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1c09bb29-c311-57ac-85b5-d49d58457cc3",
+              "name": "bot",
+              "value": "={{ (() => {\n  const t = $('Save clinic').first().json.t; const doc = $('Read upload').first().json.doc;\n  const ch = (t.channels ?? []).find(c => c.channel === 'telegram' && String(c.api_base).startsWith('https://'));\n  const token = ch && (doc.channels ?? []).find(c => c.channel === 'telegram' && String(c.external_id) === String(ch.external_id))?.token;\n  return token ? { token, api_base: ch.api_base, account_id: ch.id, secret: ch.webhook_secret, bot_id: String(ch.external_id),\n                   chat_id: doc.config?.operator?.chat_id ?? null } : null; })() }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "703d48c9-9285-5d51-b41f-8be7a53a2164",
+      "name": "Real bot?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        -80
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f80ea0a0-5434-5a4a-bc33-442db86c007a",
+              "leftValue": "={{ !!$json.bot }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "67bd6133-3fc4-52bf-b8de-b33c94bec809",
+      "name": "Public URL?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        -160
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "604302f0-ab9a-5a50-86ce-88a95780d6df",
+              "leftValue": "={{ String($env.WEBHOOK_URL ?? '').startsWith('https://') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "c190c0e0-8064-54db-aeac-0a73dcc4d3b7",
+      "name": "Set webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        -240
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.bot.api_base }}/bot{{ $json.bot.token }}/setWebhook",
+        "options": {
+          "timeout": 10000
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ url: $env.WEBHOOK_URL.replace(/\\/$/, '') + '/webhook/tg/' + $json.bot.account_id, secret_token: $json.bot.secret, allowed_updates: ['message', 'callback_query'] }) }}"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "019fc533-b332-50a4-bdf2-96cb84be19c4",
+      "name": "Operator rights",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        -160
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Bot').first().json.bot.api_base }}/bot{{ $('Bot').first().json.bot.token }}/getChatMember?chat_id={{ $('Bot').first().json.bot.chat_id }}&user_id={{ $('Bot').first().json.bot.bot_id }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "435b3c63-e0b5-552b-b33e-f188b6bcccd0",
+      "name": "Connected",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        2200,
+        -80
+      ],
+      "parameters": {
+        "operation": "completion",
+        "respondWith": "text",
+        "completionTitle": "=Clinic {{ $('Save clinic').first().json.t.slug }} is connected",
+        "completionMessage": "={{ (() => {\n  const t = $('Save clinic').first().json.t;\n  const bot = $('Bot').first().json.bot;\n  const lines = [\n    `Clinic \"${t.slug}\": ${t.branches} branches, ${t.services} services, ${t.doctors} doctors, ${t.shifts} shifts planned.`,\n    $('Index knowledge base').isExecuted ? `Knowledge base: ${$('Index knowledge base').first().json.chunks ?? 0} chunks from ${$('Index knowledge base').first().json.articles ?? 0} articles.`\n                                         : 'Knowledge base: unchanged (no articles uploaded).',\n    ...t.channels.map(c => `Channel ${c.channel} ${c.external_id}: account ${c.id}` + (c.channel === 'widget' ? ` (widget endpoint /webhook/widget/${c.id})` : '')),\n  ];\n  const chat = $('Read upload').first().json.doc.config?.operator?.chat_id;\n  const tg = t.channels.some(c => c.channel === 'telegram');\n  if (!tg || !chat) lines.push(`Operator handoff: off (${tg ? 'no operator group' : 'no Telegram bot'}). Clients who ask for a person get the clinic phone; add both to hand chats to administrators.`);\n  if (!bot) lines.push('Telegram: no real bot token, nothing to register.');\n  else {\n    lines.push($('Set webhook').isExecuted ? `Telegram webhook: ${$('Set webhook').first().json.ok ? 'set' : 'FAILED ' + JSON.stringify($('Set webhook').first().json.error ?? $('Set webhook').first().json).slice(0, 200)}`\n                                           : 'Telegram webhook: not set, WEBHOOK_URL is not a public https URL.');\n    const m = $('Operator rights').first().json.result;\n    lines.push(m ? `Operator group: bot is ${m.status}${m.status === 'administrator' && m.can_manage_topics ? ' with topic rights' : ', needs admin rights with \"Manage topics\"'}.`\n                 : 'Operator group: not checked (set config.operator.chat_id and add the bot as admin).');\n  }\n  return lines.join('\\n');\n})() }}"
+      }
+    },
+    {
+      "id": "c656f799-3a3a-5c72-ba22-b7c171e0acc9",
+      "name": "Not saved",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        660,
+        160
+      ],
+      "parameters": {
+        "operation": "completion",
+        "respondWith": "text",
+        "completionTitle": "The clinic was not saved",
+        "completionMessage": "={{ String($json.error?.message ?? $json.error ?? 'unknown error') }}"
+      }
+    }
+  ],
+  "connections": {
+    "Onboarding form": {
+      "main": [
+        [
+          {
+            "node": "Read upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read upload": {
+      "main": [
+        [
+          {
+            "node": "Save clinic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save clinic": {
+      "main": [
+        [
+          {
+            "node": "Articles?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Not saved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Articles?": {
+      "main": [
+        [
+          {
+            "node": "Index knowledge base",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Index knowledge base": {
+      "main": [
+        [
+          {
+            "node": "Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bot": {
+      "main": [
+        [
+          {
+            "node": "Real bot?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Real bot?": {
+      "main": [
+        [
+          {
+            "node": "Public URL?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Connected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Public URL?": {
+      "main": [
+        [
+          {
+            "node": "Set webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Operator rights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set webhook": {
+      "main": [
+        [
+          {
+            "node": "Operator rights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Operator rights": {
+      "main": [
+        [
+          {
+            "node": "Connected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "none"
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "Connect a clinic without touching workflows: n8n form (tenant.json, knowledge base .md files, optional Telegram bot token and operator group) -> upsert_tenant -> admin.reindex -> Telegram setWebhook -> bot rights check in the operator group. The form is reachable only where the n8n UI is (localhost / SSH tunnel)."
+}

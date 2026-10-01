@@ -1,0 +1,294 @@
+{
+  "id": "cron-followups",
+  "name": "cron.followups",
+  "nodes": [
+    {
+      "id": "6620bc95-9f29-5570-a286-cdd92df5c815",
+      "name": "Every 15 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ee09d628-8b8e-59aa-b5f2-1ab1961af25f",
+      "name": "Complete past visits",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select complete_past_appointments() as done",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "a52ab17f-8fcd-5a85-bd6e-fb326b85852d",
+      "name": "Claim follow-ups",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select (e ->> 'message_id')::bigint as message_id from jsonb_array_elements(claim_followups(100)) e",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "95fb3d22-16db-5f22-9e12-47f50c60a480",
+      "name": "Send follow-ups",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "out-send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_id": "={{ $json.message_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "30f74dc0-b87a-5064-a949-4a7d22c5cec5",
+      "name": "Daily at 11:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        220
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 11
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "6de012aa-0071-51d4-87d1-377b64182a1d",
+      "name": "Extend shifts",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        220
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select ensure_shifts(28) as shifts",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "e7607482-6aa0-599d-9cbd-7d0e4f03237f",
+      "name": "Claim reactivation",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        440,
+        220
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select (e ->> 'message_id')::bigint as message_id from jsonb_array_elements(claim_reactivation()) e",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "6c79ec56-f475-5eed-b111-8820a36925e6",
+      "name": "Send reactivation",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        660,
+        220
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "out-send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_id": "={{ $json.message_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every 15 minutes": {
+      "main": [
+        [
+          {
+            "node": "Complete past visits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Complete past visits": {
+      "main": [
+        [
+          {
+            "node": "Claim follow-ups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim follow-ups": {
+      "main": [
+        [
+          {
+            "node": "Send follow-ups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily at 11:00": {
+      "main": [
+        [
+          {
+            "node": "Extend shifts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extend shifts": {
+      "main": [
+        [
+          {
+            "node": "Claim reactivation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim reactivation": {
+      "main": [
+        [
+          {
+            "node": "Send reactivation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "Client lifecycle (P1). Every 15 minutes: finished visits become done, then a review request (1-5 stars) or, for a no-show, a rebooking offer. Daily at 11:00: shifts extended 4 weeks ahead; clients without a visit for N months get one reactivation message (per-tenant daily limit)."
+}

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lumina Dental · Kyiv</title>
+  <meta name="description" content="Demo clinic for an AI front desk built on n8n: chat, Telegram bot, bookings, reminders.">
+  <style>
+    :root { --bg: #f8fafc; --fg: #0f172a; --muted: #475569; --card: #fff; --line: #e2e8f0; --accent: #0f766e; --gw-accent: #0f766e; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #0b1120; --fg: #e2e8f0; --muted: #94a3b8; --card: #111827; --line: #1f2937; } }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: var(--accent); }
+    .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 18px 0; gap: 16px; flex-wrap: wrap; }
+    .logo { font-weight: 700; font-size: 20px; letter-spacing: .2px; }
+    .logo span { color: var(--accent); }
+    nav a { margin-left: 18px; text-decoration: none; color: var(--muted); }
+    .hero { padding: 48px 0 32px; display: grid; gap: 24px; grid-template-columns: 1.2fr 1fr; align-items: center; }
+    .hero h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.1; margin: 0 0 14px; }
+    .hero p { color: var(--muted); font-size: 18px; margin: 0 0 22px; }
+    .cta { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn { display: inline-block; border: 0; border-radius: 12px; padding: 13px 18px; font: 600 15px system-ui, sans-serif; cursor: pointer; text-decoration: none; }
+    .btn.primary { background: var(--accent); color: #fff; }
+    .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--fg); }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
+    .try li { margin: 6px 0; color: var(--muted); }
+    section { padding: 28px 0; }
+    h2 { font-size: 26px; margin: 0 0 16px; }
+    .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+    .price { font-weight: 700; color: var(--accent); }
+    .small { color: var(--muted); font-size: 14px; }
+    footer { padding: 32px 0 90px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); margin-top: 24px; }
+    @media (max-width: 760px) { .hero { grid-template-columns: 1fr; padding-top: 24px; } nav a { margin: 0 14px 0 0; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">Lumina <span>Dental</span></div>
+      <nav><a href="#services">Services</a><a href="#clinics">Clinics</a><a href="#doctors">Doctors</a><a id="dash-link" href="#" hidden>Live dashboard</a></nav>
+    </header>
+
+    <div class="hero">
+      <div>
+        <h1>Dental care in Kyiv, booked in one chat</h1>
+        <p>Ask about prices, pick a time and get reminders. Our AI front desk answers 24/7 in English, Ukrainian and Russian, and hands you to a human whenever you want.</p>
+        <div class="cta">
+          <button class="btn primary" id="open-chat" type="button">Chat with the assistant</button>
+          <a class="btn ghost" id="tg-link" href="#" hidden>Open in Telegram</a>
+        </div>
+      </div>
+      <div class="card try">
+        <strong>Try asking</strong>
+        <ul>
+          <li>How much is whitening?</li>
+          <li>Book a cleaning at Podil next week</li>
+          <li>Is there parking at the Center clinic?</li>
+          <li>Скільки коштує пломба?</li>
+          <li>I have strong pain and swelling</li>
+          <li>I want to talk to a person</li>
+        </ul>
+      </div>
+    </div>
+
+    <section id="services">
+      <h2>Services and prices</h2>
+      <div class="grid">
+        <div class="card"><strong>Consultation and exam</strong><div class="price">500 UAH</div><div class="small">Exam, treatment plan, cost estimate · 30 min</div></div>
+        <div class="card"><strong>Professional cleaning</strong><div class="price">1800 UAH</div><div class="small">Scaling, Air Flow, polishing · 60 min</div></div>
+        <div class="card"><strong>In-office whitening</strong><div class="price">6500 UAH</div><div class="small">One visit · 90 min</div></div>
+        <div class="card"><strong>Composite filling</strong><div class="price">from 1600 UAH</div><div class="small">Depends on size · 60 min</div></div>
+        <div class="card"><strong>Root canal treatment</strong><div class="price">from 3500 UAH</div><div class="small">Under microscope</div></div>
+        <div class="card"><strong>Dental implant</strong><div class="price">from 22000 UAH</div><div class="small">Crown priced separately</div></div>
+        <div class="card"><strong>Clear aligners planning</strong><div class="price">1500 UAH</div><div class="small">3D scan and simulation</div></div>
+        <div class="card"><strong>Children's check-up</strong><div class="price">450 UAH</div><div class="small">Ages 3-14</div></div>
+      </div>
+    </section>
+
+    <section id="clinics">
+      <h2>Clinics</h2>
+      <div class="grid">
+        <div class="card"><strong>Lumina Center</strong><div>14 Volodymyrska St</div><div class="small">Mon-Fri 09:00-20:00 · Sat 10:00-16:00</div></div>
+        <div class="card"><strong>Lumina Podil</strong><div>7 Kostiantynivska St</div><div class="small">Mon-Fri 08:00-19:00</div></div>
+      </div>
+    </section>
+
+    <section id="doctors">
+      <h2>Doctors</h2>
+      <div class="grid">
+        <div class="card"><strong>Dr. Olena Kovalenko</strong><div class="small">General dentist</div></div>
+        <div class="card"><strong>Dr. Andrii Melnyk</strong><div class="small">Orthodontist</div></div>
+        <div class="card"><strong>Iryna Bondarenko</strong><div class="small">Dental hygienist</div></div>
+        <div class="card"><strong>Dr. Taras Shevchuk</strong><div class="small">Oral surgeon, implants</div></div>
+        <div class="card"><strong>Dr. Sofia Lysenko</strong><div class="small">Paediatric dentist</div></div>
+      </div>
+    </section>
+
+    <footer>
+      Lumina Dental is a demo clinic: names, prices and history are synthetic. The assistant is an AI front desk
+      built entirely in n8n (Telegram, web chat, WhatsApp, bookings mirrored to Google Calendar, operator handoff in
+      Telegram topics, reminders). Do not share real medical or personal data here.
+    </footer>
+  </div>
+
+  <script src="/config.js"></script>
+  <script>
+    const cfg = window.GREETER || {};
+    if (cfg.telegram) { const a = document.getElementById('tg-link'); a.href = cfg.telegram; a.hidden = false; }
+    if (cfg.dashboard) { const a = document.getElementById('dash-link'); a.href = cfg.dashboard; a.hidden = false; }
+    document.getElementById('open-chat').onclick = () => document.querySelector('.gw-btn')?.click();
+  </script>
+  <script src="/widget.js" data-title="Lumina Dental"></script>
+</body>
+</html>

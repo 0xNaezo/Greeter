@@ -1,0 +1,212 @@
+{
+  "id": "cron-usage",
+  "name": "cron.usage",
+  "nodes": [
+    {
+      "id": "5d6f8bd7-a967-5ab1-afcf-80d33056756e",
+      "name": "Every 5 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "025d593f-30a0-5048-b704-9ce28d134381",
+      "name": "Usage rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// token usage of every LLM call, summed per execution and model; tenant and session from execution custom data.\n// Failed executions count too. Unfinished ones are left to a later scan: the scan windows overlap.\nconst rows = new Map();\nfor (const ex of $input.all().flatMap(page => page.json.data ?? [])) {\n  if (!ex?.id || !ex.customData?.tenant_id || ['new', 'running', 'waiting'].includes(ex.status)) continue;\n  for (const runs of Object.values(ex.data?.resultData?.runData ?? {})) {\n    for (const run of runs) {\n      const out = run.data?.ai_languageModel?.[0]?.[0]?.json;\n      const usage = out?.tokenUsage ?? out?.tokenUsageEstimate;\n      if (!usage) continue;\n      const opts = run.inputOverride?.ai_languageModel?.[0]?.[0]?.json?.options ?? {};\n      const model = String(opts.model ?? opts.modelName ?? opts.model_name ?? 'unknown');\n      const key = ex.id + '|' + model;\n      const row = rows.get(key) ?? { tenant_id: ex.customData.tenant_id, session_id: ex.customData.session_id || null,\n                                     execution_id: String(ex.id), model, tokens_in: 0, tokens_out: 0, estimated: false };\n      row.tokens_in += usage.promptTokens ?? 0;\n      row.tokens_out += usage.completionTokens ?? 0;\n      row.estimated ||= !out.tokenUsage;\n      rows.set(key, row);\n    }\n  }\n}\nconst scans = $('Scan window').all().map(i => ({ workflow_id: i.json.workflow_id, until: i.json.until }));\nreturn [{ json: { rows: [...rows.values()], scans } }];"
+      }
+    },
+    {
+      "id": "953ccf66-bca7-5028-9900-73199d0373b6",
+      "name": "Record usage",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select record_llm_usage($1::jsonb, $2::jsonb) as inserted",
+        "options": {
+          "queryReplacement": "={{ [ JSON.stringify($json.rows), JSON.stringify($json.scans) ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "bc630c41-82e4-40a9-8eae-a586349363aa",
+      "name": "Scan window",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select * from usage_scan_start(array['core-turn', 'handoff-escalate'])",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "37279b2a-82db-47fb-9001-6e503d7f0059",
+      "name": "Executions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "url": "http://n8n:5678/api/v1/executions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "n8nApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "workflowId",
+              "value": "={{ $json.workflow_id }}"
+            },
+            {
+              "name": "startedAfter",
+              "value": "={{ new Date($json.since).toISOString() }}"
+            },
+            {
+              "name": "includeData",
+              "value": "true"
+            },
+            {
+              "name": "ignoreDataSizeLimit",
+              "value": "true"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "pagination": {
+            "pagination": {
+              "paginationMode": "updateAParameterInEachRequest",
+              "parameters": {
+                "parameters": [
+                  {
+                    "type": "qs",
+                    "name": "cursor",
+                    "value": "={{ $response.body.nextCursor }}"
+                  }
+                ]
+              },
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !$response.body.nextCursor }}",
+              "limitPagesFetched": true,
+              "maxRequests": 50
+            }
+          }
+        }
+      },
+      "credentials": {
+        "n8nApi": {
+          "id": "cred-n8n-api",
+          "name": "n8n API"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "notes": "ponytail: at most 50 pages of 100 executions per workflow and scan; page across runs if a 5-minute window ever holds more."
+    }
+  ],
+  "connections": {
+    "Every 5 minutes": {
+      "main": [
+        [
+          {
+            "node": "Scan window",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scan window": {
+      "main": [
+        [
+          {
+            "node": "Executions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executions": {
+      "main": [
+        [
+          {
+            "node": "Usage rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Usage rows": {
+      "main": [
+        [
+          {
+            "node": "Record usage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "Every 5 minutes: LLM token usage of agent turns and handoff summaries (finished, failed ones too), read from n8n executions via the n8n API since the last scan (usage_scans, with an overlap) with cursor paging, into llm_usage (idempotent per execution and model; cost from llm_prices)."
+}

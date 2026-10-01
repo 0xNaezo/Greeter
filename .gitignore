@@ -1,1 +1,3 @@
 .env
+web/config.js
+reports/k6-summary.json

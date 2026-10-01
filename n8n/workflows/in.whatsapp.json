@@ -1,0 +1,539 @@
+{
+  "id": "in-whatsapp",
+  "name": "in.whatsapp",
+  "nodes": [
+    {
+      "id": "3b7048e4-563f-5bef-ac96-b47c858b48af",
+      "name": "WhatsApp webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "multipleMethods": true,
+        "httpMethod": [
+          "GET",
+          "POST"
+        ],
+        "path": ":wa_account",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "webhookId": "wa"
+    },
+    {
+      "id": "501d49c9-b86f-5e6c-9d18-6e014aec39fd",
+      "name": "Verify token",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        240,
+        -160
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select channel_account_auth($1, 'whatsapp', $2) as acc",
+        "options": {
+          "queryReplacement": "={{ [ $json.params.wa_account, $json.query?.['hub.verify_token'] ?? '' ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "27b04e91-47b9-5050-8430-5735da82e0e9",
+      "name": "Verified?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        460,
+        -160
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e5f3f98d-f5b9-5a06-a61b-07d316512781",
+              "leftValue": "={{ !!$json.acc && $('WhatsApp webhook').first().json.query?.['hub.mode'] === 'subscribe' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "60110757-b120-5abd-992a-d28a246f63d8",
+      "name": "Challenge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        680,
+        -240
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "options": {
+          "responseCode": 200
+        },
+        "responseBody": "={{ $('WhatsApp webhook').first().json.query['hub.challenge'] }}"
+      }
+    },
+    {
+      "id": "fb6186b1-2a5d-53e2-a70d-868e5b3cef91",
+      "name": "Refuse",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        680,
+        -80
+      ],
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 403
+        }
+      }
+    },
+    {
+      "id": "1cdf2db8-fc4c-5f5b-975e-4dbd0c4b901a",
+      "name": "Sign body",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        240,
+        160
+      ],
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "binaryData": true,
+        "binaryPropertyName": "data",
+        "dataPropertyName": "expected",
+        "encoding": "hex"
+      },
+      "credentials": {
+        "crypto": {
+          "id": "cred-wa-app-secret",
+          "name": "WhatsApp app secret"
+        }
+      }
+    },
+    {
+      "id": "e861133b-af35-5192-bd87-3f72353626d1",
+      "name": "Signed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        460,
+        160
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "37127484-a808-54f1-975e-9526bffdcac4",
+              "leftValue": "={{ String($('WhatsApp webhook').first().json.headers['x-hub-signature-256'] ?? '') === 'sha256=' + $json.expected }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "5f009238-b583-5b6b-bd26-2420cdb2f7c5",
+      "name": "Bad signature",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        680,
+        260
+      ],
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 401
+        }
+      }
+    },
+    {
+      "id": "6e0653eb-3490-5842-826c-0a6526e1a163",
+      "name": "Ack",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        680,
+        100
+      ],
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "941ccd0f-91ed-5e8a-a50b-21c96430edf9",
+      "name": "Check account",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        900,
+        100
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select channel_account_auth($1, 'whatsapp') as acc",
+        "options": {
+          "queryReplacement": "={{ [ $('WhatsApp webhook').first().json.params.wa_account ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "edc7da24-7640-52a2-bc0e-71186b28ace5",
+      "name": "Known number?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cd68f302-f8dd-539f-843a-0aa31a79851f",
+              "leftValue": "={{ !!$json.acc }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "85a0caef-d202-561e-8694-52e377c6ad95",
+      "name": "Messages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        80
+      ],
+      "parameters": {
+        "jsCode": "// Meta webhook payload -> one item per client message of this phone number (statuses are ignored)\nconst body = $('WhatsApp webhook').first().json.body ?? {};\nconst acc = $('Check account').first().json.acc;\nconst out = [];\nfor (const entry of body.entry ?? []) for (const change of entry.changes ?? []) {\n  const v = change.value ?? {};\n  if (String(v.metadata?.phone_number_id) !== String(acc.external_id)) continue;\n  const names = Object.fromEntries((v.contacts ?? []).map(c => [c.wa_id, c.profile?.name]));\n  for (const m of v.messages ?? []) {\n    const reply = m.interactive?.button_reply ?? m.interactive?.list_reply ?? (m.button ? { id: m.button.payload, title: m.button.text } : null);\n    out.push({ json: {\n      account_id: acc.account_id, tenant_id: acc.tenant_id, user_id: String(m.from), chat_id: String(m.from), external_id: String(m.id),\n      text: reply ? '[button] ' + (reply.title ?? reply.id) : (m.text?.body ?? '[' + (m.type ?? 'unsupported message') + ']'),\n      payload: reply ? { callback: String(reply.id) } : {},\n      profile: { first_name: names[m.from] ?? null } } });\n  }\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "5cc8eaeb-91fc-5a34-98cf-02a25f109115",
+      "name": "Ingest",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1560,
+        80
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select ingest_message($1::uuid, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8) as r",
+        "options": {
+          "queryReplacement": "={{ [ $json.account_id, $json.user_id, $json.chat_id, $json.external_id, $json.text, JSON.stringify($json.payload), JSON.stringify($json.profile), $execution.id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "ca7ec63e-8e47-5baa-a0cd-63dec89917e9",
+      "name": "New?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1780,
+        80
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dba89df5-910b-5e2f-a826-aa8fad49b9fa",
+              "leftValue": "={{ $json.r.is_new }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "90324b0a-e59d-538c-bb9f-0b0652ab5f21",
+      "name": "Process conversation",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2220,
+        60
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "core-process"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "conversation_id": "={{ $('Ingest').item.json.r.conversation_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "conversation_id",
+              "displayName": "conversation_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "WhatsApp webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sign body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify token": {
+      "main": [
+        [
+          {
+            "node": "Verified?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verified?": {
+      "main": [
+        [
+          {
+            "node": "Challenge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Refuse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign body": {
+      "main": [
+        [
+          {
+            "node": "Signed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Signed?": {
+      "main": [
+        [
+          {
+            "node": "Ack",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Bad signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ack": {
+      "main": [
+        [
+          {
+            "node": "Check account",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check account": {
+      "main": [
+        [
+          {
+            "node": "Known number?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Known number?": {
+      "main": [
+        [
+          {
+            "node": "Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Messages": {
+      "main": [
+        [
+          {
+            "node": "Ingest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ingest": {
+      "main": [
+        [
+          {
+            "node": "New?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New?": {
+      "main": [
+        [
+          {
+            "node": "Process conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true,
+    "saveDataSuccessExecution": "none"
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "WhatsApp Cloud API webhook of every clinic number: /webhook/wa/<channel account id>. GET = Meta verification (verify token = account webhook secret); POST = X-Hub-Signature-256 checked with the platform app secret (Crypto node, raw body), then messages and button replies are ingested. The sender phone is proved by WhatsApp, so ingest_message glues the client to an existing verified profile with the same phone (P1)."
+}

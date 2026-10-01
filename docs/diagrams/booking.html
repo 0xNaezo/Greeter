@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The model proposes, the client confirms · Greeter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #eb6c36;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', 'Noto Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Sequence · Greeter · booking</p>
+    <h1>The model proposes, the client confirms</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 708" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="booking-title booking-desc">
+        <title id="booking-title">The model proposes, the client confirms</title>
+        <desc id="booking-desc">The AI agent finds slots and saves a pending proposal; nothing is booked until the client taps Confirm, when core.action runs confirm_action() in one transaction guarded by an exclusion constraint and mirrors the event to Google Calendar.</desc>
+        <defs>
+<marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+<marker id="arrow-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+<marker id="arrow-accent-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+<marker id="arrow-link-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#4f5d75" stroke-width="1.2"/></marker>
+        </defs>
+        <rect width="100%" height="100%" fill="#f5f5f5"/>
+<line x1="104" y1="88" x2="104" y2="608" stroke="rgba(45,49,66,0.22)" stroke-width="1" stroke-dasharray="3,3"/>
+<line x1="344" y1="88" x2="344" y2="608" stroke="rgba(45,49,66,0.22)" stroke-width="1" stroke-dasharray="3,3"/>
+<line x1="512" y1="88" x2="512" y2="608" stroke="rgba(45,49,66,0.22)" stroke-width="1" stroke-dasharray="3,3"/>
+<line x1="680" y1="88" x2="680" y2="608" stroke="rgba(45,49,66,0.22)" stroke-width="1" stroke-dasharray="3,3"/>
+<line x1="848" y1="88" x2="848" y2="608" stroke="rgba(45,49,66,0.22)" stroke-width="1" stroke-dasharray="3,3"/>
+<path d="M108,136 L340,136" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect x="130" y="118" width="188" height="12" rx="2" fill="#f5f5f5"/>
+<text x="224" y="127" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0em">“Book a cleaning at Podil next week”</text>
+<path d="M348,168 L676,168" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect x="526" y="150" width="140" height="12" rx="2" fill="#f5f5f5"/>
+<text x="596" y="159" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0em">find_slots(hygiene, podil)</text>
+<path d="M676,200 L348,200" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+<rect x="380" y="182" width="96" height="12" rx="2" fill="#f5f5f5"/>
+<text x="428" y="191" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.04em">FREE START TIMES</text>
+<path d="M340,232 L108,232" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+<rect x="130" y="214" width="188" height="12" rx="2" fill="#f5f5f5"/>
+<text x="224" y="223" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0em">“Mon 09:00, Wed 10:00 or Fri 08:30?”</text>
+<path d="M108,264 L340,264" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect x="128" y="246" width="192" height="12" rx="2" fill="#f5f5f5"/>
+<text x="224" y="255" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0em">“Wed 10:00. Anna Test, +380501230001”</text>
+<path d="M348,308 L676,308" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect x="376" y="278" width="104" height="24" rx="2" fill="#f5f5f5"/>
+<text x="428" y="287" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0em">save_client_info(),</text>
+<text x="428" y="299" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0em">propose_booking()</text>
+<rect x="622" y="324" width="116" height="32" rx="3" fill="#ececec" stroke="rgba(45,49,66,0.16)" stroke-width="0.8"/>
+<text x="680" y="337" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.02em">pending action,</text>
+<text x="680" y="349" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.02em">nothing booked yet</text>
+<path d="M340,392 L108,392" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+<rect x="146" y="374" width="156" height="12" rx="2" fill="#f5f5f5"/>
+<text x="224" y="383" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.04em">SUMMARY + [Confirm] [Cancel]</text>
+<path d="M108,424 L508,424" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect x="182" y="406" width="84" height="12" rx="2" fill="#f5f5f5"/>
+<text x="224" y="415" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.04em">TAPS [Confirm]</text>
+<path d="M516,456 L676,456" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect x="552" y="438" width="88" height="12" rx="2" fill="#f5f5f5"/>
+<text x="596" y="447" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0em">confirm_action()</text>
+<rect x="618" y="472" width="124" height="44" rx="3" fill="#ececec" stroke="rgba(45,49,66,0.16)" stroke-width="0.8"/>
+<text x="680" y="485" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.02em">one transaction,</text>
+<text x="680" y="497" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.02em">exclusion constraint</text>
+<text x="680" y="509" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.02em">guards the slot</text>
+<path d="M508,552 L108,552" fill="none" stroke="#eb6c36" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+<rect x="114" y="534" width="220" height="12" rx="2" fill="#f5f5f5"/>
+<text x="224" y="543" fill="#eb6c36" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0em">“Booked: Professional cleaning, Wed 10:00”</text>
+<path d="M516,584 L844,584" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-open)"/>
+<rect x="690" y="566" width="148" height="12" rx="2" fill="#f5f5f5"/>
+<text x="764" y="575" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.04em">int.gcal MIRRORS THE EVENT</text>
+<rect x="40" y="40" width="128" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="40" y="40" width="128" height="48" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+<text x="104.0" y="68.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Client</text>
+<rect x="280" y="40" width="128" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="280" y="40" width="128" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="344.0" y="68.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">AI agent</text>
+<rect x="448" y="40" width="128" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="448" y="40" width="128" height="48" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+<text x="512.0" y="68.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">core.action</text>
+<rect x="616" y="40" width="128" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="616" y="40" width="128" height="48" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+<text x="680.0" y="68.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Postgres</text>
+<rect x="784" y="40" width="128" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="784" y="40" width="128" height="48" rx="6" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+<text x="848.0" y="68.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Google Calendar</text>
+<line x1="40" y1="640" x2="920" y2="640" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+<text x="40" y="664" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+<rect x="112" y="655" width="16" height="12" rx="2" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+<text x="134" y="664" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Client</text>
+<rect x="188" y="655" width="16" height="12" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="210" y="664" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Agent</text>
+<rect x="259" y="655" width="16" height="12" rx="2" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+<text x="281" y="664" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Deterministic, no LLM</text>
+<rect x="412" y="655" width="16" height="12" rx="2" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+<text x="434" y="664" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">DB</text>
+<rect x="468" y="655" width="16" height="12" rx="2" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+<text x="490" y="664" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">External</text>
+<line x1="554" y1="661" x2="582" y2="661" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<text x="590" y="664" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Call</text>
+<line x1="634" y1="661" x2="662" y2="661" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+<text x="670" y="664" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Return</text>
+<line x1="724" y1="661" x2="752" y2="661" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-open)"/>
+<text x="760" y="664" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Async</text>
+<line x1="112" y1="681" x2="140" y2="681" stroke="#eb6c36" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+<text x="148" y="684" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Booking confirmed</text>
+<rect x="258" y="674" width="20" height="14" rx="2" fill="#ececec" stroke="rgba(45,49,66,0.16)" stroke-width="0.8"/>
+<text x="284" y="684" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Note</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

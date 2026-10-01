@@ -1,0 +1,16 @@
+apiVersion: 1
+providers:
+  - name: public
+    folder: Public
+    folderUid: public
+    type: file
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards/public
+  - name: admin
+    folder: Admin
+    folderUid: admin
+    type: file
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards/admin

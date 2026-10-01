@@ -1,0 +1,28 @@
+{
+  "slug": "loadtest",
+  "name": "Load Test Clinic",
+  "timezone": "Europe/Kyiv",
+  "llm_profile": "stub",
+  "config": {
+    "about": "Synthetic clinic for load tests: stub LLM (1-3 s latency) and stub Telegram API.",
+    "emergency_phone": "+380 44 000 00 00",
+    "operator": { "chat_id": "-1009999999999", "sla_min": 10 },
+    "booking": { "slot_step_min": 30, "lead_min": 60, "horizon_days": 7 },
+    "calendar": { "api_base": "http://stub:3000/google/calendar/v3", "token_uri": "http://stub:3000/google/token" },
+    "models": { "stub": "stub-model" }
+  },
+  "branches": [{ "slug": "main", "name": "Load Test Branch", "address": "1 Test St", "calendar_id": "stub-loadtest" }],
+  "services": [
+    { "slug": "consultation", "name": "Consultation", "price": 500, "duration_min": 30 },
+    { "slug": "hygiene", "name": "Professional cleaning", "price": 1800, "duration_min": 60 }
+  ],
+  "doctors": [
+    { "slug": "doc-a", "name": "Dr. A", "services": ["consultation", "hygiene"],
+      "schedule": [{ "branch": "main", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "00:00", "to": "23:59" }] },
+    { "slug": "doc-b", "name": "Dr. B", "services": ["consultation"],
+      "schedule": [{ "branch": "main", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "from": "00:00", "to": "23:59" }] }
+  ],
+  "channels": [
+    { "channel": "telegram", "external_id": "loadtest-bot", "name": "@loadtest_stub_bot", "token": "0:loadtest", "api_base": "http://stub:3000/telegram" }
+  ]
+}

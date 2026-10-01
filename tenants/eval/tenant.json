@@ -1,0 +1,7 @@
+{
+  "extends": "demo",
+  "slug": "eval",
+  "name": "Lumina Dental (eval)",
+  "env": { "telegram_token": null, "whatsapp_phone_number_id": null },
+  "channels": [{ "channel": "widget", "external_id": "eval-widget", "name": "eval harness" }]
+}

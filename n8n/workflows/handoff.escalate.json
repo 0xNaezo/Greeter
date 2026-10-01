@@ -1,0 +1,1318 @@
+{
+  "id": "handoff-escalate",
+  "name": "handoff.escalate",
+  "nodes": [
+    {
+      "id": "e56d0525-541c-57a6-9b0e-e3303398fa76",
+      "name": "Escalation",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "conversation_id",
+              "type": "string"
+            },
+            {
+              "name": "session_id",
+              "type": "string"
+            },
+            {
+              "name": "reason",
+              "type": "string"
+            },
+            {
+              "name": "notify_client",
+              "type": "boolean"
+            },
+            {
+              "name": "escalation_id",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "3905eec9-e615-5576-bbb7-91b3f085a2ac",
+      "name": "Retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6d7b281b-650f-573e-9e36-5a78ac04bc9e",
+              "leftValue": "={{ !!$json.escalation_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "9f0ae7d3-b1bc-5b80-b86c-aa2734491db6",
+      "name": "Escalate",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        440,
+        80
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select escalate($1::uuid, $2::uuid, $3, $4) as card",
+        "options": {
+          "queryReplacement": "={{ [ $json.conversation_id, $json.session_id || null, $json.reason, $env.APP_ENCRYPTION_KEY ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "6dee22bd-6406-5422-aee9-bb77375b1237",
+      "name": "Existing card",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        440,
+        -80
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select escalation_card($1::uuid, $2) as card",
+        "options": {
+          "queryReplacement": "={{ [ $json.escalation_id, $env.APP_ENCRYPTION_KEY ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "a2fd8953-37f8-5dfc-b93c-42e2eb8c30c2",
+      "name": "Escalated?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d1ee6239-847a-52fd-a5b3-8d7a7d2d8ac1",
+              "leftValue": "={{ $json.card && $json.card.escalated !== false }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "5389d95c-b817-5ece-b222-7b833b9bb269",
+      "name": "Card",
+      "type": "n8n-nodes-base.executionData",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "dataToSave": {
+          "values": [
+            {
+              "key": "tenant_id",
+              "value": "={{ $json.card.tenant_id }}"
+            },
+            {
+              "key": "session_id",
+              "value": "={{ $json.card.session_id }}"
+            },
+            {
+              "key": "conversation_id",
+              "value": "={{ $json.card.conversation_id }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "be629a96-5bdc-5f96-9420-78b6416fccd2",
+      "name": "Tell client?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        -160
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f6df22f0-3303-511e-8a3a-588d0672411a",
+              "leftValue": "={{ $('Escalation').first().json.notify_client === true && !$('Escalation').first().json.escalation_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "76e3eafc-60e2-521d-a22f-87aea1ec9dc6",
+      "name": "Handoff message",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1320,
+        -180
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select notify_handoff($1::uuid) as message_id",
+        "options": {
+          "queryReplacement": "={{ [ $('Card').first().json.card.conversation_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "7c61781a-cb31-5b27-a93a-419bd84866c3",
+      "name": "Send handoff message",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1540,
+        -180
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "out-send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_id": "={{ $json.message_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "4f7f09c9-b000-5c87-87e0-295f2d89d0af",
+      "name": "Summarize",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        1100,
+        40
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Conversation of a dental clinic client with the virtual assistant (newest last):\n{{ $('Card').first().json.card.history }}\n\nEscalation reason: {{ $('Card').first().json.card.reason }}.",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "SystemMessagePromptTemplate",
+              "message": "Write a 2-3 sentence brief in English for the clinic administrator who takes over this chat: what the client wants, key facts (name, phone, appointment, symptoms), what the assistant already did. No greetings, no advice, plain text."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "c1ae5b2b-e229-51ce-89ba-fcd846213663",
+      "name": "Summary model OpenRouter",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        1020,
+        300
+      ],
+      "parameters": {
+        "model": "={{ $('Card').first().json.card.models?.openrouter ?? 'openai/gpt-4.1-mini' }}",
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 4096,
+          "timeout": 15000,
+          "maxRetries": 0
+        }
+      },
+      "credentials": {
+        "openRouterApi": {
+          "id": "cred-openrouter",
+          "name": "OpenRouter"
+        }
+      }
+    },
+    {
+      "id": "d9b589b9-e029-5077-9c89-cd2eda1f8f3d",
+      "name": "Summary model Groq",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1160,
+        300
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Card').first().json.card.models?.groq ?? 'llama-3.3-70b-versatile' }}"
+        },
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 1024,
+          "timeout": 15000,
+          "maxRetries": 0
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "cred-groq-openai",
+          "name": "Groq (OpenAI-compatible)"
+        }
+      }
+    },
+    {
+      "id": "4d52032d-a27b-598c-ae5e-3463471d12d5",
+      "name": "Summary model Stub LLM",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1300,
+        300
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Card').first().json.card.models?.stub ?? 'stub-model' }}"
+        },
+        "options": {
+          "temperature": 0.3,
+          "timeout": 15000,
+          "maxRetries": 0
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "cred-llm-stub",
+          "name": "Stub LLM (OpenAI-compatible)"
+        }
+      }
+    },
+    {
+      "id": "4d004ffc-3d31-5e11-9780-b04ae0c13959",
+      "name": "Summary model by tenant",
+      "type": "@n8n/n8n-nodes-langchain.modelSelector",
+      "typeVersion": 1,
+      "position": [
+        1160,
+        160
+      ],
+      "parameters": {
+        "numberInputs": 3,
+        "rules": {
+          "rule": [
+            {
+              "modelIndex": 1,
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "19b9b0fb-afd1-5be5-a2a2-2e1ee40af0f4",
+                    "leftValue": "={{ $('Card').first().json.card.llm_profile === 'openrouter' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "modelIndex": 2,
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "40ed7701-67bc-5c6b-90f7-3428741c2cd6",
+                    "leftValue": "={{ $('Card').first().json.card.llm_profile === 'groq' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "modelIndex": 3,
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "6a8be3c6-b252-5f68-b79f-bbea3da498db",
+                    "leftValue": "={{ $('Card').first().json.card.llm_profile === 'stub' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "b8092238-ba37-5f1f-8462-eca195879a6d",
+      "name": "Brief",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1320,
+        40
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "11c3dfe6-d237-5c68-86fd-8e9e525c1ae8",
+              "name": "summary",
+              "value": "={{ ($json.text ?? '').trim() || $('Card').first().json.card.history.split('\\n').filter(l => l.includes(' Client: ')).slice(-3).join('\\n') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "73197d55-f1a1-59cb-83a6-c611bd258432",
+      "name": "Operator group?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        40
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7a87dd10-d9a6-5bad-8335-5a0ea900f04a",
+              "leftValue": "={{ !!$('Card').first().json.card.operator_chat_id && !!$('Card').first().json.card.bot?.token }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "2f189a66-2f7b-5a5e-9863-8a6cc35410bd",
+      "name": "Has topic?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1760,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4eb92e1e-bde5-537c-9077-17b62457dea2",
+              "leftValue": "={{ !!$('Card').first().json.card.topic_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "6d5b85b6-dcee-5a57-94e5-6eec55832b1f",
+      "name": "Create topic",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Card').first().json.card.bot.api_base }}/bot{{ $('Card').first().json.card.bot.token }}/createForumTopic",
+        "options": {
+          "timeout": 10000
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Card').first().json.card.operator_chat_id, name: $('Card').first().json.card.topic_name }) }}"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "674721e5-caf5-5da3-ba9a-b96a1400356d",
+      "name": "Save topic",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2200,
+        80
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select set_client_topic($1::uuid, $2) as topic_id",
+        "options": {
+          "queryReplacement": "={{ [ $('Card').first().json.card.client_id, $json.result.message_thread_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "5b28dd9e-c9be-500a-a916-8860e90c93f2",
+      "name": "Topic",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2420,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "613bf198-292f-5683-a429-79b3ea21d48a",
+      "name": "Post card",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2640,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Card').first().json.card.bot.api_base }}/bot{{ $('Card').first().json.card.bot.token }}/sendMessage",
+        "options": {
+          "timeout": 10000
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('Card').first().json.card.operator_chat_id, message_thread_id: Number($json.topic_id ?? $('Card').first().json.card.topic_id), text: '🆘 ' + (({ user_request: 'client asked for a human', complaint: 'complaint', medical: 'medical question', urgent: '🚨 URGENT symptoms', not_understood: 'bot did not understand twice', tool_error: 'technical failure' })[$('Card').first().json.card.reason] ?? $('Card').first().json.card.reason) + '\\n' + $('Card').first().json.card.client_name + ($('Card').first().json.card.client_phone ? ' · ' + $('Card').first().json.card.client_phone : '') + ' · ' + ($('Card').first().json.card.channel ?? '') + ($('Card').first().json.card.possible_duplicate ? '\\n⚠️ Another client profile has this phone. The client typed it in the chat, it is not verified: make sure who you are talking to before sharing personal data or appointments.' : '') + '\\n\\n' + $('Brief').first().json.summary + '\\n\\nRecent messages:\\n' + $('Card').first().json.card.history.slice(-2500) + '\\n\\nReply in this topic, the client gets it in their messenger. The bot stays silent until you press the button.', reply_markup: { inline_keyboard: [[{ text: '↩️ Return to bot', callback_data: 'rb:' + $('Card').first().json.card.conversation_id }]] } }) }}"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "f6dd0bd6-b7c4-514b-b9cf-809473d1290a",
+      "name": "Mark notified",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2860,
+        40
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select mark_escalation_notified($1::uuid, $2)",
+        "options": {
+          "queryReplacement": "={{ [ $('Card').first().json.card.escalation_id, $('Brief').first().json.summary ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "8c92949c-ee1f-48a7-a2ed-68fb6444eec0",
+      "name": "No operator?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        260
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "40536dd7-087e-4bae-9625-7099c32158b2",
+              "leftValue": "={{ $json.card?.reason === 'no_operator' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "d56b3a3d-feb5-4f4e-bf9a-286932381865",
+      "name": "Send phone message",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1100,
+        200
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "out-send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_id": "={{ $json.card.message_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "54402c62-76b2-49e9-908c-6eb78646dfed",
+      "name": "Report no operator",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1100,
+        360
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "ops-error"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "workflow": "={{ $workflow.name }}",
+            "node": "={{ 'Escalate' }}",
+            "execution_id": "={{ $execution.id }}",
+            "error": "={{ 'Clinic ' + $json.card.tenant_slug + ' has no operator group or Telegram bot: a handoff was answered with the clinic phone. Set operator.chat_id and a bot in the clinic config.' }}",
+            "ref": "={{ 'no_operator:' + $json.card.tenant_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "workflow",
+              "displayName": "workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "node",
+              "displayName": "node",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "ref",
+              "displayName": "ref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "a8cb3963-d380-466e-9f2d-38d10ac25cb5",
+      "name": "Topic gone?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2860,
+        220
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c232b4f0-b654-4c85-840c-f7b63531edee",
+              "leftValue": "={{ /thread not found|TOPIC_|\\b403\\b|Forbidden/i.test(JSON.stringify($json.error ?? $json)) && !$('Reset topic').isExecuted }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "90c0618a-4449-4e39-be51-9888ec5d8ad6",
+      "name": "Reset topic",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3080,
+        400
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select reset_client_topic($1::uuid, $2::bigint)",
+        "options": {
+          "queryReplacement": "={{ [ $('Card').first().json.card.client_id, $('Topic').first().json.topic_id ?? $('Card').first().json.card.topic_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "fe3f259e-6fdb-482b-a2ee-2bb4c8af8993",
+      "name": "Report card failure",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        3080,
+        220
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "ops-error"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "workflow": "={{ $workflow.name }}",
+            "node": "={{ 'Post card' }}",
+            "execution_id": "={{ $execution.id }}",
+            "error": "={{ 'The operator card of escalation ' + $('Card').first().json.card.escalation_id + ' was not posted; cron.reconcile retries it every minute: ' + ($json.error ? String($json.error.message ?? JSON.stringify($json.error)) : 'no operator group or Telegram bot').slice(0, 400) }}",
+            "ref": "={{ 'card:' + $('Card').first().json.card.escalation_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "workflow",
+              "displayName": "workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "node",
+              "displayName": "node",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "ref",
+              "displayName": "ref",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Summary model OpenRouter": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summary model by tenant",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summary model Groq": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summary model by tenant",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Summary model Stub LLM": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summary model by tenant",
+            "type": "ai_languageModel",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Summary model by tenant": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarize",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalation": {
+      "main": [
+        [
+          {
+            "node": "Retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retry?": {
+      "main": [
+        [
+          {
+            "node": "Existing card",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Escalate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Existing card": {
+      "main": [
+        [
+          {
+            "node": "Escalated?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalate": {
+      "main": [
+        [
+          {
+            "node": "Escalated?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalated?": {
+      "main": [
+        [
+          {
+            "node": "Card",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No operator?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Card": {
+      "main": [
+        [
+          {
+            "node": "Tell client?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Summarize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tell client?": {
+      "main": [
+        [
+          {
+            "node": "Handoff message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff message": {
+      "main": [
+        [
+          {
+            "node": "Send handoff message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize": {
+      "main": [
+        [
+          {
+            "node": "Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brief": {
+      "main": [
+        [
+          {
+            "node": "Operator group?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Operator group?": {
+      "main": [
+        [
+          {
+            "node": "Has topic?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report card failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has topic?": {
+      "main": [
+        [
+          {
+            "node": "Topic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create topic": {
+      "main": [
+        [
+          {
+            "node": "Save topic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report card failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save topic": {
+      "main": [
+        [
+          {
+            "node": "Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Topic": {
+      "main": [
+        [
+          {
+            "node": "Post card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post card": {
+      "main": [
+        [
+          {
+            "node": "Mark notified",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Topic gone?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No operator?": {
+      "main": [
+        [
+          {
+            "node": "Send phone message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Report no operator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Topic gone?": {
+      "main": [
+        [
+          {
+            "node": "Reset topic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report card failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reset topic": {
+      "main": [
+        [
+          {
+            "node": "Create topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "Hand a conversation to a human: state = operator, LLM summary, client topic in the operator supergroup (created once, created again when it was deleted), card with history and a \"Return to bot\" button. Retried by cron.reconcile until notified_at is set; a card that cannot be posted is one incident, closed when it gets through. A clinic without an operator group or bot keeps the bot: the client gets the clinic phone and the platform chat an alert."
+}

@@ -1,0 +1,247 @@
+{
+  "id": "cron-operator-sla",
+  "name": "cron.operator_sla",
+  "nodes": [
+    {
+      "id": "e912ddcd-605f-5789-83b9-c174b29a8011",
+      "name": "Every minute",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "066f05fe-3e75-50bc-a7fb-f58e4617b6ff",
+      "name": "Claim breaches",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select jsonb_array_elements(claim_sla_breaches($1)) as b",
+        "options": {
+          "queryReplacement": "={{ [ $env.APP_ENCRYPTION_KEY ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "9c54ea00-05e9-5336-86de-cf248d6fceb5",
+      "name": "Client message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        -100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "eb9563f1-22ce-5347-b74a-0fa5a75e6576",
+              "leftValue": "={{ !!$json.b.message_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "ab0d2742-4d5d-5b95-9972-e83deda8d916",
+      "name": "Send holding message",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        660,
+        -120
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "out-send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_id": "={{ $json.b.message_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    },
+    {
+      "id": "edc076f9-00d9-570b-8f30-89a4eef6d184",
+      "name": "Topic?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "16bcd01a-f1b7-5672-8a81-b51b31fa7084",
+              "leftValue": "={{ !!$json.b.topic_id && !!$json.b.operator_chat_id && !!$json.b.bot?.token }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "32a30256-18fd-5356-9848-74101ba15d58",
+      "name": "Remind operator",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        80
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.b.bot.api_base }}/bot{{ $json.b.bot.token }}/sendMessage",
+        "options": {
+          "timeout": 10000
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $json.b.operator_chat_id, message_thread_id: Number($json.b.topic_id), text: '⏰ ' + $json.b.client_name + ' has been waiting for ' + $json.b.waited_min + ' min. Please reply here, or press \"Return to bot\".' }) }}"
+      },
+      "onError": "continueRegularOutput",
+      "notes": "no retry: a node retry would ping every operator topic of the batch again. A breach is claimed once, so a reminder lost to a Telegram error is not repeated."
+    }
+  ],
+  "connections": {
+    "Every minute": {
+      "main": [
+        [
+          {
+            "node": "Claim breaches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim breaches": {
+      "main": [
+        [
+          {
+            "node": "Client message?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Topic?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Client message?": {
+      "main": [
+        [
+          {
+            "node": "Send holding message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Topic?": {
+      "main": [
+        [
+          {
+            "node": "Remind operator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "Every minute: conversations waiting for the operator longer than the tenant SLA (config.operator.sla_min) get a holding message to the client and a reminder in the client topic. Claimed once per wait (sla_notified_at)."
+}

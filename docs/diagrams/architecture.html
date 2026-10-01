@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture · Greeter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #eb6c36;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', 'Noto Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Architecture · Greeter</p>
+    <h1>Architecture</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 632" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="architecture-title architecture-desc">
+        <title id="architecture-title">Architecture</title>
+        <desc id="architecture-desc">Clients reach n8n only through Caddy; n8n runs in queue mode with Redis and workers, calls external services, and changes data in PostgreSQL through one SQL function per mutation, which Grafana and NocoDB read.</desc>
+        <defs>
+<marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+<marker id="arrow-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+<marker id="arrow-accent-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+<marker id="arrow-link-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#4f5d75" stroke-width="1.2"/></marker>
+        </defs>
+        <rect width="100%" height="100%" fill="#f5f5f5"/>
+<rect x="40" y="40" width="616" height="96" rx="8" fill="none" stroke="rgba(45,49,66,0.16)" stroke-width="0.8"/>
+<rect x="52" y="44" width="52" height="12" rx="2" fill="#f5f5f5"/>
+<text x="78.0" y="53" fill="#7a8399" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">CLIENTS</text>
+<rect x="40" y="168" width="616" height="384" rx="8" fill="none" stroke="rgba(45,49,66,0.16)" stroke-width="0.8"/>
+<rect x="52" y="172" width="88" height="12" rx="2" fill="#f5f5f5"/>
+<text x="96.0" y="181" fill="#7a8399" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">DOCKER COMPOSE</text>
+<rect x="64" y="296" width="568" height="112" rx="8" fill="none" stroke="rgba(45,49,66,0.16)" stroke-width="0.8"/>
+<rect x="76" y="300" width="100" height="12" rx="2" fill="#f5f5f5"/>
+<text x="126.0" y="309" fill="#7a8399" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">N8N · QUEUE MODE</text>
+<rect x="688" y="168" width="232" height="384" rx="8" fill="none" stroke="rgba(45,49,66,0.16)" stroke-width="0.8"/>
+<rect x="700" y="172" width="104" height="12" rx="2" fill="#f5f5f5"/>
+<text x="752.0" y="181" fill="#7a8399" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">EXTERNAL SERVICES</text>
+<path d="M348,136 L348,200" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M348,256 L348,296" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M232,356 L280,356" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect x="240" y="338" width="32" height="12" rx="2" fill="#f5f5f5"/>
+<text x="256" y="347" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">JOBS</text>
+<path d="M416,356 L464,356" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M632,352 L688,352" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M348,408 L348,456" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)" marker-start="url(#arrow-start)"/>
+<rect x="356" y="426" width="168" height="12" rx="2" fill="#f5f5f5"/>
+<text x="440" y="435" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">ONE SQL FUNCTION PER MUTATION</text>
+<path d="M252,492 L176,492" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect x="180" y="474" width="68" height="12" rx="2" fill="#f5f5f5"/>
+<text x="214" y="483" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0em">dash.* views</text>
+<path d="M444,492 L520,492" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)" marker-start="url(#arrow-start)"/>
+<rect x="76" y="72" width="160" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="76" y="72" width="160" height="48" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+<text x="156.0" y="100.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Telegram</text>
+<rect x="268" y="72" width="160" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="268" y="72" width="160" height="48" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+<text x="348.0" y="100.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">WhatsApp</text>
+<rect x="460" y="72" width="160" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="460" y="72" width="160" height="48" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+<text x="540.0" y="100.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Web widget</text>
+<rect x="252" y="200" width="192" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="252" y="200" width="192" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="348.0" y="226.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Caddy</text>
+<text x="348.0" y="240.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">the only public entry</text>
+<rect x="88" y="328" width="144" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="88" y="328" width="144" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="160.0" y="354.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">main</text>
+<text x="160.0" y="368.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">webhooks · schedules</text>
+<rect x="280" y="328" width="136" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="280" y="328" width="136" height="56" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+<text x="348.0" y="360.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Redis</text>
+<rect x="464" y="328" width="144" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="464" y="328" width="144" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="536.0" y="354.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">workers × N</text>
+<text x="536.0" y="368.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">run the workflows</text>
+<rect x="252" y="456" width="192" height="72" rx="6" fill="#f5f5f5"/>
+<rect x="252" y="456" width="192" height="72" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+<text x="348.0" y="484.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">PostgreSQL 17</text>
+<text x="348.0" y="498.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">+ pgvector</text>
+<text x="348.0" y="510.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">SQL functions</text>
+<rect x="64" y="464" width="112" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="64" y="464" width="112" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="120.0" y="496.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Grafana</text>
+<rect x="520" y="464" width="112" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="520" y="464" width="112" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="576.0" y="490.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">NocoDB</text>
+<text x="576.0" y="504.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">admin grids</text>
+<rect x="704" y="216" width="200" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="704" y="216" width="200" height="56" rx="6" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+<text x="804.0" y="242.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">OpenRouter</text>
+<text x="804.0" y="256.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Groq fallback</text>
+<rect x="704" y="296" width="200" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="704" y="296" width="200" height="56" rx="6" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+<text x="804.0" y="328.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Google Calendar</text>
+<rect x="704" y="376" width="200" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="704" y="376" width="200" height="56" rx="6" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+<text x="804.0" y="402.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Operator group</text>
+<text x="804.0" y="416.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">Telegram topics</text>
+<rect x="704" y="456" width="200" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="704" y="456" width="200" height="56" rx="6" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+<text x="804.0" y="482.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Platform chat</text>
+<text x="804.0" y="496.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">alerts + Replay</text>
+<line x1="40" y1="584" x2="920" y2="584" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+<text x="40" y="608" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+<rect x="112" y="599" width="16" height="12" rx="2" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+<text x="134" y="608" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Client channel</text>
+<rect x="229" y="599" width="16" height="12" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="251" y="608" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Service</text>
+<rect x="310" y="599" width="16" height="12" rx="2" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+<text x="332" y="608" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Queue</text>
+<rect x="381" y="599" width="16" height="12" rx="2" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+<text x="403" y="608" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">System of record</text>
+<rect x="508" y="599" width="16" height="12" rx="2" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1"/>
+<text x="530" y="608" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">External</text>
+<rect x="594" y="598" width="20" height="14" rx="3" fill="none" stroke="rgba(45,49,66,0.16)" stroke-width="0.8"/>
+<text x="620" y="608" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Group</text>
+<line x1="669" y1="605" x2="697" y2="605" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<text x="705" y="608" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Calls</text>
+<line x1="758" y1="605" x2="782" y2="605" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)" marker-start="url(#arrow-start)"/>
+<text x="790" y="608" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Reads + writes</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

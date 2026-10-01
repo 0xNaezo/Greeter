@@ -1,0 +1,125 @@
+{
+  "id": "cron-reminders",
+  "name": "cron.reminders",
+  "nodes": [
+    {
+      "id": "a28113fd-2ab2-5795-9db9-6133d3777dd9",
+      "name": "Every 5 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ea1e0fdc-7621-51da-9aec-7581b374e2c6",
+      "name": "Claim reminders",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select (e ->> 'message_id')::bigint as message_id from jsonb_array_elements(claim_reminders(100)) e",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "1c00c6d7-3371-5963-95f2-f50d6751f493",
+      "name": "Send reminders",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "out-send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_id": "={{ $json.message_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every 5 minutes": {
+      "main": [
+        [
+          {
+            "node": "Claim reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim reminders": {
+      "main": [
+        [
+          {
+            "node": "Send reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "Every 5 minutes: reminders 24 h (Attend / Reschedule / Cancel buttons) and 2 h before a visit. The claim sets reminder_*_sent_at in the same transaction that queues the message; delivery is retried by cron.reconcile."
+}

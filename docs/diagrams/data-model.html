@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data model · Greeter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #eb6c36;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', 'Noto Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">ER · Greeter · data model</p>
+    <h1>Data model</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 792" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="data-model-title data-model-desc">
+        <title id="data-model-title">Data model</title>
+        <desc id="data-model-desc">Thirteen tables in two domains: clients, identities and conversations with their sessions, messages, proposals and escalations; and scheduling, where appointments link clients, doctors, branches and services, and doctors work shifts at branches.</desc>
+        <defs>
+<marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+<marker id="arrow-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+<marker id="arrow-accent-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+<marker id="arrow-link-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#4f5d75" stroke-width="1.2"/></marker>
+        </defs>
+        <rect width="100%" height="100%" fill="#f5f5f5"/>
+<rect x="40" y="40" width="880" height="320" rx="8" fill="none" stroke="rgba(45,49,66,0.16)" stroke-width="0.8"/>
+<rect x="52" y="44" width="84" height="12" rx="2" fill="#f5f5f5"/>
+<text x="94.0" y="53" fill="#7a8399" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">CONVERSATIONS</text>
+<rect x="40" y="392" width="880" height="320" rx="8" fill="none" stroke="rgba(45,49,66,0.16)" stroke-width="0.8"/>
+<rect x="52" y="396" width="68" height="12" rx="2" fill="#f5f5f5"/>
+<text x="86.0" y="405" fill="#7a8399" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.14em">SCHEDULING</text>
+<path d="M132,120 L132,184" fill="none" stroke="#4f5d75" stroke-width="1.2"/>
+<rect x="112" y="126" width="12" height="12" rx="2" fill="#f5f5f5"/><text x="118" y="135" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text>
+<rect x="96" y="166" width="28" height="12" rx="2" fill="#f5f5f5"/><text x="110" y="175" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">0..N</text>
+<rect x="140" y="146" width="32" height="12" rx="2" fill="#f5f5f5"/>
+<text x="156" y="155" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">SEES</text>
+<path d="M288,208 L208,208" fill="none" stroke="#4f5d75" stroke-width="1.2"/>
+<rect x="268" y="214" width="12" height="12" rx="2" fill="#f5f5f5"/><text x="274" y="223" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text>
+<rect x="212" y="214" width="28" height="12" rx="2" fill="#f5f5f5"/><text x="226" y="223" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">0..N</text>
+<rect x="222" y="190" width="52" height="12" rx="2" fill="#f5f5f5"/>
+<text x="248" y="199" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">KNOWN AS</text>
+<path d="M440,208 L520,208" fill="none" stroke="#4f5d75" stroke-width="1.2"/>
+<rect x="448" y="214" width="12" height="12" rx="2" fill="#f5f5f5"/><text x="454" y="223" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text>
+<rect x="500" y="214" width="12" height="12" rx="2" fill="#f5f5f5"/><text x="506" y="223" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text>
+<rect x="466" y="190" width="28" height="12" rx="2" fill="#f5f5f5"/>
+<text x="480" y="199" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">HAS</text>
+<path d="M672,208 L752,208" fill="none" stroke="#4f5d75" stroke-width="1.2"/>
+<rect x="680" y="214" width="12" height="12" rx="2" fill="#f5f5f5"/><text x="686" y="223" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text>
+<rect x="720" y="214" width="28" height="12" rx="2" fill="#f5f5f5"/><text x="734" y="223" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">0..N</text>
+<rect x="680" y="190" width="64" height="12" rx="2" fill="#f5f5f5"/>
+<text x="712" y="199" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">SPLIT INTO</text>
+<path d="M828,184 L828,120" fill="none" stroke="#4f5d75" stroke-width="1.2"/>
+<rect x="808" y="166" width="12" height="12" rx="2" fill="#f5f5f5"/><text x="814" y="175" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text>
+<rect x="792" y="126" width="28" height="12" rx="2" fill="#f5f5f5"/><text x="806" y="135" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">0..N</text>
+<rect x="836" y="146" width="52" height="12" rx="2" fill="#f5f5f5"/>
+<text x="862" y="155" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">CONTAINS</text>
+<path d="M596,184 L596,120" fill="none" stroke="#4f5d75" stroke-width="1.2"/>
+<rect x="576" y="166" width="12" height="12" rx="2" fill="#f5f5f5"/><text x="582" y="175" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text>
+<rect x="560" y="126" width="28" height="12" rx="2" fill="#f5f5f5"/><text x="574" y="135" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">0..N</text>
+<rect x="604" y="146" width="52" height="12" rx="2" fill="#f5f5f5"/>
+<text x="630" y="155" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">PROPOSES</text>
+<path d="M596,232 L596,296" fill="none" stroke="#4f5d75" stroke-width="1.2"/>
+<rect x="576" y="238" width="12" height="12" rx="2" fill="#f5f5f5"/><text x="582" y="247" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text>
+<rect x="560" y="278" width="28" height="12" rx="2" fill="#f5f5f5"/><text x="574" y="287" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">0..N</text>
+<rect x="604" y="258" width="60" height="12" rx="2" fill="#f5f5f5"/>
+<text x="634" y="267" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">HANDS OFF</text>
+<path d="M364,232 L364,424" fill="none" stroke="#4f5d75" stroke-width="1.2"/>
+<rect x="344" y="238" width="12" height="12" rx="2" fill="#f5f5f5"/><text x="350" y="247" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text>
+<rect x="328" y="406" width="28" height="12" rx="2" fill="#f5f5f5"/><text x="342" y="415" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">0..N</text>
+<rect x="372" y="322" width="36" height="12" rx="2" fill="#f5f5f5"/>
+<text x="390" y="331" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">BOOKS</text>
+<path d="M208,448 L288,448" fill="none" stroke="#4f5d75" stroke-width="1.2"/>
+<rect x="216" y="454" width="12" height="12" rx="2" fill="#f5f5f5"/><text x="222" y="463" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text>
+<rect x="252" y="454" width="28" height="12" rx="2" fill="#f5f5f5"/><text x="266" y="463" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">0..N</text>
+<rect x="226" y="430" width="44" height="12" rx="2" fill="#f5f5f5"/>
+<text x="248" y="439" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">TREATS</text>
+<path d="M520,448 L440,448" fill="none" stroke="#4f5d75" stroke-width="1.2"/>
+<rect x="500" y="454" width="12" height="12" rx="2" fill="#f5f5f5"/><text x="506" y="463" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text>
+<rect x="448" y="454" width="28" height="12" rx="2" fill="#f5f5f5"/><text x="462" y="463" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">0..N</text>
+<rect x="462" y="430" width="36" height="12" rx="2" fill="#f5f5f5"/>
+<text x="480" y="439" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">HOSTS</text>
+<path d="M364,536 L364,472" fill="none" stroke="#4f5d75" stroke-width="1.2"/>
+<rect x="344" y="518" width="12" height="12" rx="2" fill="#f5f5f5"/><text x="350" y="527" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text>
+<rect x="328" y="478" width="28" height="12" rx="2" fill="#f5f5f5"/><text x="342" y="487" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">0..N</text>
+<rect x="372" y="498" width="52" height="12" rx="2" fill="#f5f5f5"/>
+<text x="398" y="507" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">PROVIDES</text>
+<path d="M156,472 L156,552 Q156,560 164,560 L288,560" fill="none" stroke="#4f5d75" stroke-width="1.2"/>
+<rect x="120" y="478" width="28" height="12" rx="2" fill="#f5f5f5"/><text x="134" y="487" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">0..N</text>
+<rect x="252" y="566" width="28" height="12" rx="2" fill="#f5f5f5"/><text x="266" y="575" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">0..N</text>
+<rect x="200" y="542" width="44" height="12" rx="2" fill="#f5f5f5"/>
+<text x="222" y="551" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">OFFERS</text>
+<path d="M108,472 L108,664 Q108,672 116,672 L288,672" fill="none" stroke="#4f5d75" stroke-width="1.2"/>
+<rect x="88" y="478" width="12" height="12" rx="2" fill="#f5f5f5"/><text x="94" y="487" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text>
+<rect x="252" y="678" width="28" height="12" rx="2" fill="#f5f5f5"/><text x="266" y="687" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">0..N</text>
+<rect x="180" y="654" width="36" height="12" rx="2" fill="#f5f5f5"/>
+<text x="198" y="663" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">WORKS</text>
+<path d="M596,472 L596,664 Q596,672 588,672 L440,672" fill="none" stroke="#4f5d75" stroke-width="1.2"/>
+<rect x="576" y="478" width="12" height="12" rx="2" fill="#f5f5f5"/><text x="582" y="487" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1</text>
+<rect x="448" y="678" width="28" height="12" rx="2" fill="#f5f5f5"/><text x="462" y="687" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">0..N</text>
+<rect x="500" y="654" width="36" height="12" rx="2" fill="#f5f5f5"/>
+<text x="518" y="663" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">HOSTS</text>
+<rect x="56" y="72" width="152" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="56" y="72" width="152" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="132.0" y="100.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">channel_accounts</text>
+<rect x="520" y="72" width="152" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="520" y="72" width="152" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="596.0" y="100.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">pending_actions</text>
+<rect x="752" y="72" width="152" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="752" y="72" width="152" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="828.0" y="100.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">messages</text>
+<rect x="56" y="184" width="152" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="56" y="184" width="152" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="132.0" y="212.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">client_identities</text>
+<rect x="288" y="184" width="152" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="288" y="184" width="152" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="364.0" y="212.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">clients</text>
+<rect x="520" y="184" width="152" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="520" y="184" width="152" height="48" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+<text x="596.0" y="212.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">conversations</text>
+<rect x="752" y="184" width="152" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="752" y="184" width="152" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="828.0" y="212.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">sessions</text>
+<rect x="520" y="296" width="152" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="520" y="296" width="152" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="596.0" y="324.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">escalations</text>
+<rect x="56" y="424" width="152" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="56" y="424" width="152" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="132.0" y="452.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">doctors</text>
+<rect x="288" y="424" width="152" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="288" y="424" width="152" height="48" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+<text x="364.0" y="452.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">appointments</text>
+<rect x="520" y="424" width="152" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="520" y="424" width="152" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="596.0" y="452.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">branches</text>
+<rect x="288" y="536" width="152" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="288" y="536" width="152" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="364.0" y="564.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">services</text>
+<rect x="288" y="648" width="152" height="48" rx="6" fill="#f5f5f5"/>
+<rect x="288" y="648" width="152" height="48" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="364.0" y="676.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">doctor_shifts</text>
+<line x1="40" y1="744" x2="920" y2="744" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+<text x="40" y="768" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+<rect x="112" y="759" width="16" height="12" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="134" y="768" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Table</text>
+<rect x="183" y="759" width="16" height="12" rx="2" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+<text x="205" y="768" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Hub table</text>
+<line x1="274" y1="765" x2="302" y2="765" stroke="#4f5d75" stroke-width="1.2"/>
+<text x="310" y="768" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Relationship</text>
+<text x="409" y="768" fill="#7a8399" font-size="8" font-weight="600" font-family="'Geist Mono', monospace" text-anchor="middle">1 · N</text>
+<text x="431" y="768" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Cardinality: 1 = exactly one, 0..N = zero or many</text>
+<rect x="704" y="758" width="20" height="14" rx="3" fill="none" stroke="rgba(45,49,66,0.16)" stroke-width="0.8"/>
+<text x="730" y="768" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Domain</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

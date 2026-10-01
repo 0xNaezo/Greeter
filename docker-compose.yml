@@ -1,11 +1,53 @@
+# AI Front Desk. Dev: `scripts/bootstrap.sh`. Scale workers: `docker compose up -d --scale n8n-worker=N`.
+# Profiles: stub (fake LLM/Telegram/Google/WhatsApp for local work and load tests), load (k6), tunnel (cloudflared).
+
+x-n8n-env: &n8n-env
+  DB_TYPE: postgresdb
+  DB_POSTGRESDB_HOST: postgres
+  DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
+  DB_POSTGRESDB_USER: ${POSTGRES_USER}
+  DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+  # n8n's own connection pool (default 2) serialises execution saves under load
+  DB_POSTGRESDB_POOL_SIZE: "10"
+  # The isolated-vm expression engine (default) protects n8n from its own workflow authors and took ~75% of
+  # worker CPU in the load test (reports/load-*.md). Workflows here are written by the platform admin only
+  # and client text is never evaluated as an expression, so the in-process engine is an accepted trade-off.
+  N8N_EXPRESSION_ENGINE: legacy
+  N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+  EXECUTIONS_MODE: queue
+  QUEUE_BULL_REDIS_HOST: redis
+  QUEUE_HEALTH_CHECK_ACTIVE: "true"
+  OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS: "true"
+  N8N_DEFAULT_BINARY_DATA_MODE: database
+  EXECUTIONS_DATA_MAX_AGE: "336"
+  WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678/}
+  N8N_PROXY_HOPS: "1"
+  GENERIC_TIMEZONE: ${TZ}
+  TZ: ${TZ}
+  N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+  N8N_DIAGNOSTICS_ENABLED: "false"
+  N8N_PERSONALIZATION_ENABLED: "false"
+  N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+  # Eval reports are written to ./reports by the Read/Write Files node
+  N8N_RESTRICT_FILE_ACCESS_TO: /reports
+  # Workflows read the APP_* / platform settings below through $env. The n8n UI is admin-only
+  # (localhost / SSH tunnel), so exposing env to expressions is an accepted trade-off.
+  N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+  APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY}
+  PLATFORM_TG_CHAT_ID: ${PLATFORM_TG_CHAT_ID:-}
+  # knowledge base search (agent.tools); bootstrap points it at OpenRouter when OPENROUTER_API_KEY is set
+  EMBEDDINGS_API_URL: ${EMBEDDINGS_API_URL:-http://stub:3000/v1}
+  GOOGLE_SA_EMAIL: ${GOOGLE_SA_EMAIL:-}
+
 services:
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg17
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+    command: ["postgres", "-c", "max_connections=300"]
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -14,31 +56,35 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:8.8-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # main: UI, triggers, webhooks; executions run on workers
   n8n:
     image: docker.n8n.io/n8nio/n8n:2.40.7
     restart: unless-stopped
     ports:
       - "127.0.0.1:5678:5678"
     environment:
-      DB_TYPE: postgresdb
-      DB_POSTGRESDB_HOST: postgres
-      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
-      DB_POSTGRESDB_USER: ${POSTGRES_USER}
-      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
-      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
-      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678/}
-      GENERIC_TIMEZONE: ${TZ}
-      TZ: ${TZ}
-      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
-      N8N_DIAGNOSTICS_ENABLED: "false"
-      N8N_PERSONALIZATION_ENABLED: "false"
+      <<: *n8n-env
       # Built-in MCP server at /mcp-server/http, enabled on every boot (UI toggle locked)
       N8N_MCP_MANAGED_BY_ENV: "true"
       N8N_MCP_ACCESS_ENABLED: "true"
     volumes:
       - n8n_data:/home/node/.n8n
+      - ./reports:/reports
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz/readiness || exit 1"]
@@ -47,6 +93,128 @@ services:
       retries: 12
       start_period: 20s
 
+  n8n-worker:
+    image: docker.n8n.io/n8nio/n8n:2.40.7
+    restart: unless-stopped
+    command: ["worker", "--concurrency=${N8N_WORKER_CONCURRENCY:-20}"]
+    deploy:
+      replicas: ${N8N_WORKERS:-2}  # 2 handle the 100-dialog load test; scale with --scale n8n-worker=N
+    environment:
+      <<: *n8n-env
+    volumes:
+      - ./reports:/reports
+    depends_on:
+      n8n:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  grafana:
+    image: grafana/grafana-oss:13.0.2
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:8080/grafana/}
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      # no anonymous access: in Grafana OSS any viewer can query every datasource through the API.
+      # The demo dashboard is published as a shared (public) dashboard link by bootstrap instead.
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Admin grids over db "app" (P1): clinics, doctors, prices, shifts, clients, appointments
+  nocodb:
+    image: nocodb/nocodb:2026.09.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:8080"
+    environment:
+      NC_DB: pg://postgres:5432?u=nocodb&p=${NOCODB_DB_PASSWORD}&d=nocodb
+      NC_AUTH_JWT_SECRET: ${NOCODB_JWT_SECRET}
+      NC_ADMIN_EMAIL: ${N8N_OWNER_EMAIL:-admin@greeter.local}
+      NC_ADMIN_PASSWORD: ${NOCODB_ADMIN_PASSWORD}
+      NC_DISABLE_TELE: "true"
+      # the app database is on the compose network; NocoDB refuses private hosts unless allowed
+      NC_ALLOW_LOCAL_EXTERNAL_DBS: "true"
+    volumes:
+      - nocodb_data:/usr/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Demo clinic page + widget.js; proxies public webhooks. Dev: http://localhost:8080, prod: SITE_ADDRESS with TLS.
+  caddy:
+    image: caddy:2.11-alpine
+    restart: unless-stopped
+    ports:
+      - "${CADDY_HTTP_PORT:-8080}:80"
+      - "${CADDY_HTTPS_PORT:-8443}:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+      WIDGET_ORIGINS: ${WIDGET_ORIGINS:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./web:/srv/web:ro
+      - caddy_data:/data
+    depends_on:
+      - n8n
+
+  # Fake OpenAI-compatible LLM, Telegram Bot API, Google OAuth/Calendar, WhatsApp Graph API
+  stub:
+    image: node:22-alpine
+    profiles: [stub, load]
+    restart: unless-stopped
+    command: ["node", "/app/server.js"]
+    environment:
+      STUB_LLM_DELAY_MS: ${STUB_LLM_DELAY_MS:-1000-3000}
+      N8N_WEBHOOK_BASE: http://n8n:5678/webhook
+    ports:
+      - "127.0.0.1:3900:3000"
+    volumes:
+      - ./stub:/app:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  k6:
+    image: grafana/k6:2.3.0
+    profiles: [load]
+    volumes:
+      - ./load:/load:ro
+      - ./reports:/reports
+    environment:
+      N8N_WEBHOOK_BASE: http://n8n:5678/webhook
+
+  # Dev only: public https URL for Telegram webhooks (`docker compose --profile tunnel up -d tunnel`)
+  tunnel:
+    image: cloudflare/cloudflared:2026.9.3
+    profiles: [tunnel]
+    command: ["tunnel", "--no-autoupdate", "--url", "http://caddy:80"]
+    depends_on:
+      - caddy
+
 volumes:
   postgres_data:
+  redis_data:
   n8n_data:
+  grafana_data:
+  nocodb_data:
+  caddy_data:

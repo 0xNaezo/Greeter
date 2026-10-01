@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reliability without a custom queue · Greeter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:   #f5f5f5;
+      --color-ink:     #2d3142;
+      --color-muted:   #4f5d75;
+      --color-accent:  #eb6c36;
+      --font-sans:     'Geist', system-ui, sans-serif;
+      --font-serif:    'Instrument Serif', 'Noto Serif', serif;
+      --font-mono:     'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Flowchart · Greeter · reliability</p>
+    <h1>Reliability without a custom queue</h1>
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 536" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="reliability-title reliability-desc">
+        <title id="reliability-title">Reliability without a custom queue</title>
+        <desc id="reliability-desc">Every side effect runs on a fast path and sets a mark in the same SQL call; cron.reconcile redoes anything whose mark is still empty, while failed executions and reported problems become ops.error incidents, some replayable.</desc>
+        <defs>
+<marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+<marker id="arrow-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#4f5d75"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+<marker id="arrow-accent-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#eb6c36"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+<marker id="arrow-link-start" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="#2e5aa8"/></marker>
+<marker id="arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#4f5d75" stroke-width="1.2"/></marker>
+        </defs>
+        <rect width="100%" height="100%" fill="#f5f5f5"/>
+<path d="M400,112 L400,152" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M300,176 L160,176 Q152,176 152,184 L152,288" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect x="160" y="226" width="32" height="12" rx="2" fill="#f5f5f5"/>
+<text x="176" y="235" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">DONE</text>
+<path d="M400,224 L400,288" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect x="408" y="250" width="124" height="12" rx="2" fill="#f5f5f5"/>
+<text x="470" y="259" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">FAILED OR WORKER DIED</text>
+<path d="M500,200 L632,200 Q640,200 640,208 L640,288" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+<rect x="648" y="238" width="96" height="12" rx="2" fill="#f5f5f5"/>
+<text x="696" y="247" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">EXECUTION FAILED</text>
+<path d="M500,176 L832,176 Q840,176 840,184 L840,288" fill="none" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+<rect x="578" y="158" width="184" height="12" rx="2" fill="#f5f5f5"/>
+<text x="670" y="167" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">PROBLEM REPORTED BY THE WORKFLOW</text>
+<path d="M400,344 L400,384" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M300,420 L264,420 Q256,420 256,412 L256,208 Q256,200 264,200 L300,200" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M640,344 L640,384" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect x="648" y="358" width="112" height="12" rx="2" fill="#f5f5f5"/>
+<text x="704" y="367" fill="#7a8399" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">REPLAYABLE FAILURES</text>
+<rect x="300" y="40" width="200" height="72" rx="6" fill="#f5f5f5"/>
+<rect x="300" y="40" width="200" height="72" rx="6" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+<text x="400.0" y="68.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Inbound message</text>
+<text x="400.0" y="82.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">or booking change</text>
+<text x="400.0" y="94.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">or escalation</text>
+<rect x="300" y="152" width="200" height="72" rx="6" fill="#f5f5f5"/>
+<rect x="300" y="152" width="200" height="72" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+<text x="400.0" y="180.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Fast path</text>
+<text x="400.0" y="194.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">runs the side effect</text>
+<text x="400.0" y="206.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">HTTP nodes retry</text>
+<rect x="72" y="288" width="160" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="72" y="288" width="160" height="56" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+<text x="152.0" y="314.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Mark set</text>
+<text x="152.0" y="328.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">by the same SQL call</text>
+<rect x="300" y="288" width="200" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="300" y="288" width="200" height="56" rx="6" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+<text x="400.0" y="320.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Mark still empty</text>
+<rect x="552" y="288" width="176" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="552" y="288" width="176" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="640.0" y="314.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">ops.error</text>
+<text x="640.0" y="328.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">incident + alert</text>
+<rect x="760" y="288" width="160" height="56" rx="6" fill="#f5f5f5"/>
+<rect x="760" y="288" width="160" height="56" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="840.0" y="314.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Incident with a ref</text>
+<text x="840.0" y="328.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">closed when it clears</text>
+<rect x="300" y="384" width="200" height="72" rx="6" fill="#f5f5f5"/>
+<rect x="300" y="384" width="200" height="72" rx="6" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+<text x="400.0" y="412.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">cron.reconcile</text>
+<text x="400.0" y="426.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">every minute</text>
+<text x="400.0" y="438.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">redo with backoff</text>
+<rect x="552" y="384" width="176" height="72" rx="6" fill="#f5f5f5"/>
+<rect x="552" y="384" width="176" height="72" rx="6" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="640.0" y="412.0" fill="#2d3142" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Replay button</text>
+<text x="640.0" y="426.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">ops.replay retries</text>
+<text x="640.0" y="438.0" fill="#4f5d75" font-size="9" font-family="'Geist Mono', monospace" text-anchor="middle">via the n8n API</text>
+<line x1="40" y1="488" x2="920" y2="488" stroke="rgba(45,49,66,0.10)" stroke-width="0.8"/>
+<text x="40" y="512" fill="#4f5d75" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEGEND</text>
+<rect x="112" y="503" width="16" height="12" rx="2" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1"/>
+<text x="134" y="512" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Event</text>
+<rect x="183" y="503" width="16" height="12" rx="2" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1"/>
+<text x="205" y="512" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Recovery loop</text>
+<rect x="295" y="503" width="16" height="12" rx="2" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1"/>
+<text x="317" y="512" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Mark column</text>
+<rect x="397" y="503" width="16" height="12" rx="2" fill="#ffffff" stroke="#2d3142" stroke-width="1"/>
+<text x="419" y="512" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Workflow</text>
+<line x1="483" y1="509" x2="511" y2="509" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<text x="519" y="512" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Flow</text>
+<line x1="563" y1="509" x2="591" y2="509" stroke="#4f5d75" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+<text x="599" y="512" fill="#4f5d75" font-size="8.5" font-family="'Geist', sans-serif">Error report</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

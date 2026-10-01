@@ -1,0 +1,189 @@
+{
+  "id": "handoff-operator-reply",
+  "name": "handoff.operator_reply",
+  "nodes": [
+    {
+      "id": "d377617c-f202-5afc-ba38-3f64226f4f2c",
+      "name": "Operator message",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "account_id",
+              "type": "string"
+            },
+            {
+              "name": "chat_id",
+              "type": "string"
+            },
+            {
+              "name": "thread_id",
+              "type": "number"
+            },
+            {
+              "name": "message_id",
+              "type": "string"
+            },
+            {
+              "name": "text",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c3c5e288-618e-5309-9366-68c1fabe88d8",
+      "name": "Queue for client",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select operator_reply($1::uuid, $2, $3, $4, $5) as r",
+        "options": {
+          "queryReplacement": "={{ [ $json.account_id, $json.chat_id, $json.thread_id, $json.message_id, $json.text ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "cred-pg-app",
+          "name": "Postgres app"
+        }
+      }
+    },
+    {
+      "id": "cd155342-ac92-5f1c-a791-b0971b692f21",
+      "name": "Queued?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dae3a18d-eb9a-53ec-bb04-82feaabe201f",
+              "leftValue": "={{ $json.r.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "9fb49176-32ac-5255-9bb4-80ed11b982b4",
+      "name": "Send to client",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        660,
+        -20
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "out-send"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "message_id": "={{ $json.r.message_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Operator message": {
+      "main": [
+        [
+          {
+            "node": "Queue for client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Queue for client": {
+      "main": [
+        [
+          {
+            "node": "Queued?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Queued?": {
+      "main": [
+        [
+          {
+            "node": "Send to client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "ops-error",
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "active": false,
+  "meta": {
+    "publish": true
+  },
+  "description": "A message the operator writes in a client topic goes to the client, in the channel the client wrote from last."
+}

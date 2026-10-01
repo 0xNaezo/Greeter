@@ -1,0 +1,925 @@
+{
+  "uid": "greeter-metrics",
+  "title": "Clinic metrics",
+  "description": null,
+  "tags": [
+    "greeter"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-90d",
+    "to": "now"
+  },
+  "refresh": "",
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Dialogs",
+      "description": "Dialog sessions started in the period (a pause over 12 h starts a new session).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select count(*) from dash.sessions where tenant_id = '$tenant' and $__timeFilter(started_at)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "—",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Bookings",
+      "description": "Appointments booked through the assistant in the period.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 3,
+        "y": 0,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select count(*) from dash.appointments where tenant_id = '$tenant' and ('$branch' = 'all' or branch_id::text = '$branch') and source <> 'admin' and $__timeFilter(created_at)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "noValue": "—",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Dialog → booking",
+      "description": "Share of dialogs in which the client booked a visit.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select 100.0 * count(*) filter (where booked) / nullif(count(*), 0) from dash.sessions where tenant_id = '$tenant' and $__timeFilter(started_at)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "noValue": "—",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Handled without operator",
+      "description": "Share of dialogs that were never handed to a human.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 10,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select 100.0 * count(*) filter (where not escalated) / nullif(count(*), 0) from dash.sessions where tenant_id = '$tenant' and $__timeFilter(started_at)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "noValue": "—",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "No-shows",
+      "description": "No-shows among visits that took place in the period.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 0,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select 100.0 * count(*) filter (where status = 'no_show') / nullif(count(*) filter (where status in ('done', 'no_show')), 0) from dash.appointments where tenant_id = '$tenant' and ('$branch' = 'all' or branch_id::text = '$branch') and $__timeFilter(starts_at)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "noValue": "—",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Reply time p95",
+      "description": "95th percentile from a client message to the assistant answer (target ≤ 6 s).",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 17,
+        "y": 0,
+        "w": 3,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select percentile_cont(0.95) within group (order by seconds) from dash.response_times where tenant_id = '$tenant' and $__timeFilter(at)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 1,
+          "noValue": "—",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "yellow"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "LLM cost per dialog",
+      "description": "LLM tokens priced at list prices (free tier in practice), per dialog.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select sum(llm_cost_usd) / nullif(count(*), 0) from dash.sessions where tenant_id = '$tenant' and $__timeFilter(started_at)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4,
+          "noValue": "—",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Dialogs and bookings per day",
+      "description": null,
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "select $__timeGroupAlias(started_at, 1d), count(*) as \"Dialogs\" from dash.sessions where tenant_id = '$tenant' and $__timeFilter(started_at) group by 1 order by 1"
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "B",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "select $__timeGroupAlias(created_at, 1d), count(*) as \"Bookings\" from dash.appointments where tenant_id = '$tenant' and ('$branch' = 'all' or branch_id::text = '$branch') and source <> 'admin' and $__timeFilter(created_at) group by 1 order by 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 2,
+            "fillOpacity": 60,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Assistant reply time",
+      "description": "Daily median and p95; the red area is above the 6 s target.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "select $__timeGroupAlias(at, 1d), percentile_cont(0.5) within group (order by seconds) as \"median\", percentile_cont(0.95) within group (order by seconds) as \"p95\" from dash.response_times where tenant_id = '$tenant' and $__timeFilter(at) group by 1 order by 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "thresholdsStyle": {
+              "mode": "line+area"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 6
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "barchart",
+      "title": "Escalations by reason",
+      "description": null,
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select reason as \"Reason\", count(*) as \"Escalations\" from dash.escalations where tenant_id = '$tenant' and $__timeFilter(created_at) group by 1 order by 2 desc"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        },
+        "xTickLabelMaxLength": 24,
+        "barWidth": 0.8,
+        "groupWidth": 0.7
+      }
+    },
+    {
+      "id": 11,
+      "type": "barchart",
+      "title": "Bookings by service",
+      "description": null,
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 12,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select service as \"Service\", count(*) as \"Bookings\" from dash.appointments where tenant_id = '$tenant' and ('$branch' = 'all' or branch_id::text = '$branch') and source <> 'admin' and $__timeFilter(created_at) group by 1 order by 2 desc limit 10"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        },
+        "xTickLabelMaxLength": 24,
+        "barWidth": 0.8,
+        "groupWidth": 0.7
+      }
+    },
+    {
+      "id": 12,
+      "type": "piechart",
+      "title": "Visits by outcome",
+      "description": null,
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 12,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select status as \"Outcome\", count(*) as \"Visits\" from dash.appointments where tenant_id = '$tenant' and ('$branch' = 'all' or branch_id::text = '$branch') and $__timeFilter(starts_at) and starts_at < now() group by 1 order by 2 desc"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "LLM cost per day",
+      "description": null,
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "select $__timeGroupAlias(created_at, 1d), sum(cost_usd) as \"LLM cost\" from dash.llm_usage where tenant_id = '$tenant' and $__timeFilter(created_at) group by 1 order by 1"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 2,
+            "fillOpacity": 60,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "piechart",
+      "title": "Dialogs by channel",
+      "description": null,
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select channel as \"Channel\", count(*) as \"Dialogs\" from dash.sessions where tenant_id = '$tenant' and $__timeFilter(started_at) group by 1 order by 2 desc"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "stat",
+      "title": "Operator first reply (median)",
+      "description": "Minutes from a handoff to the first operator reply.",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "app-pg"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 20,
+        "w": 6,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "app-pg"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select percentile_cont(0.5) within group (order by reply_min) from dash.escalations where tenant_id = '$tenant' and $__timeFilter(created_at) and reply_min is not null"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "m",
+          "decimals": 1,
+          "noValue": "—",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
+        "orientation": "auto"
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "label": "Clinic",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "app-pg"
+        },
+        "refresh": 1,
+        "includeAll": false,
+        "query": "select name as __text, id::text as __value from dash.tenants order by slug = 'demo' desc, name",
+        "definition": "select name as __text, id::text as __value from dash.tenants order by slug = 'demo' desc, name"
+      },
+      {
+        "name": "branch",
+        "label": "Branch",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "app-pg"
+        },
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": "all",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "query": "select name as __text, id::text as __value from dash.branches where tenant_id = '$tenant' order by name",
+        "definition": "select name as __text, id::text as __value from dash.branches where tenant_id = '$tenant' order by name",
+        "description": "Applies to visits and bookings; dialogs are not tied to a branch."
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": []
+}

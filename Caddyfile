@@ -1,0 +1,46 @@
+# Public surface: webhooks (Telegram, WhatsApp, web widget), the demo clinic page, Grafana.
+# The n8n UI, API and admin forms stay private (localhost / SSH tunnel).
+{$SITE_ADDRESS::80} {
+	encode gzip
+
+	@webhooks path /webhook/tg/* /webhook/wa/* /webhook/ops/tg
+	handle @webhooks {
+		reverse_proxy n8n:5678
+	}
+
+	# Web widget: small JSON bodies only. CORS answers only the clinic sites listed in WIDGET_ORIGINS
+	# (space-separated); the demo page here is same-origin and needs no entry. Rate limits: widget_gate in SQL.
+	@widget path /webhook/widget/*
+	handle @widget {
+		request_body {
+			max_size 16KB
+		}
+		@cors expression `{http.request.header.Origin} != "" && " {$WIDGET_ORIGINS} ".contains(" " + {http.request.header.Origin} + " ")`
+		header @cors {
+			Access-Control-Allow-Origin {http.request.header.Origin}
+			Access-Control-Allow-Methods "POST, OPTIONS"
+			Access-Control-Allow-Headers Content-Type
+			Access-Control-Max-Age 600
+			Vary Origin
+		}
+		@preflight method OPTIONS
+		respond @preflight 204
+		# n8n answers CORS for any origin on webhooks: drop its headers
+		reverse_proxy n8n:5678 {
+			header_down -Access-Control-Allow-Origin
+			header_down -Access-Control-Allow-Credentials
+			header_down -Access-Control-Allow-Methods
+			header_down -Access-Control-Allow-Headers
+			header_down -Access-Control-Max-Age
+		}
+	}
+
+	handle /grafana* {
+		reverse_proxy grafana:3000
+	}
+
+	handle {
+		root * /srv/web
+		file_server
+	}
+}
