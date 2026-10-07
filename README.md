@@ -29,6 +29,8 @@ idempotent webhooks, no double booking, tenant isolation.
 | **Quality gates** | 46 agent evaluation scenarios, SQL test suites, a static linter for workflows |
 | **Setup** | One command, `./scripts/bootstrap.sh`; runs offline against built-in API stubs |
 
+*Developed in a private repository and published here as a snapshot, so the history starts at publication.*
+
 ## Contents
 
 - [Features](#features)
@@ -237,8 +239,8 @@ The invariants are enforced by the schema itself:
 Requirements: Docker with Compose v2, bash, curl, jq and openssl.
 
 ```bash
-git clone https://github.com/0xNaezo/Greeter.git
-cd Greeter
+git clone https://github.com/nightloom-dev/n8n-greeter.git
+cd n8n-greeter
 ./scripts/bootstrap.sh
 ```
 
@@ -583,3 +585,7 @@ knowledge base articles, with synthetic history.
   session context to hang RLS on.
 - Next on the roadmap is a voice channel (Retell or Vapi). Payments, a mobile app and integration with real
   medical record systems are out of scope.
+
+## License
+
+MIT
